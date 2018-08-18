@@ -1,0 +1,28 @@
+{
+  "name": "pbft",
+  "version": "1.0.0",
+  "description": "An implementation of the Practical Byzantine Fault Tolerance consensus algorithm",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LRAbbade/PBFT.git"
+  },
+  "keywords": [
+    "blockchain",
+    "PBFT",
+    "byzantine"
+  ],
+  "author": "Lucas Abbade",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LRAbbade/PBFT/issues"
+  },
+  "homepage": "https://github.com/LRAbbade/PBFT#readme",
+  "dependencies": {
+    "express": "^4.16.3"
+  }
+}
