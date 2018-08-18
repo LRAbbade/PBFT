@@ -6,4 +6,3 @@ It's known for being a more secure alternative to the traditional [Proof of Work
 ---
 
 This repository is part of the [CarChain project](https://github.com/alissonfpmorais/blockchain-js)
-
