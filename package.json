@@ -4,8 +4,7 @@
   "description": "An implementation of the Practical Byzantine Fault Tolerance consensus algorithm",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -23,6 +22,12 @@
   },
   "homepage": "https://github.com/LRAbbade/PBFT#readme",
   "dependencies": {
-    "express": "^4.16.3"
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3",
+    "prompt": "^1.0.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
+    "sha256": "^0.2.0",
+    "uuid": "^3.3.2"
   }
 }
