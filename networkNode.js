@@ -148,6 +148,9 @@ app.post('/validate', function (req, res) {
         });
     } else {
         console.log(`Starting validation on block ${req.body.createdBlock['hash']}`);
+        console.log(`Block received from: ${req.connection.remoteAddress}`);
+        // TODO: check if ip of sender matches any master node ip
+
         blockchain.putBlockOnHold(req.body.createdBlock);
 
         const newBlockHash = req.body.createdBlock['hash'];
