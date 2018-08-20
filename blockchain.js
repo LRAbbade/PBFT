@@ -25,6 +25,7 @@ Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
 Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
     return {
         index: this.chain.length + 1,
+        id: uuid(),
         timestamp: Date(Date.now()).split(' ').slice(0, 5).join(' '),
         carPlate: carPlate,
         carData: carData,
