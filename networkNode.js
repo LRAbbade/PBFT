@@ -108,14 +108,9 @@ app.get('/nodes', function (req, res) {
     res.json(getNodesStatus());
 });
 
-// receive a yes-no vote on a determined block
-app.post('/receive-vote', function (req, res) {
-
-});
-
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     return {
-        uri: networkNodeUrl + '/validate',
+        uri: networkNodeUrl + '/receive-vote',
         method: 'POST',
         body: {
             "newBlockHash": newBlockHash,
@@ -126,6 +121,25 @@ function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     };
 }
 
+app.post('/receive-vote', function (req, res) {
+    const blockHash = req.body.newBlockHash;
+    const vote = req.body.vote;
+    console.log(`Vote ${vote} by ${req.body.nodeAddress} was received on block ${blockHash}`);
+    const results = blockchain.processVote(blockHash, req.body.nodeAddress, vote);
+
+    if (results.yesVotes >= getMinVotesRequired()) {
+        console.log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
+        blockchain.addBlockOnHold();
+    } else if (results.totalVotes >= masterNodes.length + networkNodes.length) { // should never be greater, but just in case
+        console.log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
+        blockchain.discardBlockOnHold();
+    }
+
+    res.json({
+        note: `Vote on block ${req.body.newBlockHash} acknowledged by node ${nodeAddress}`
+    });
+});
+
 app.post('/validate', function (req, res) {
     if (!isValidMeta(req.body.originalBody)) {
         res.json({
@@ -133,10 +147,18 @@ app.post('/validate', function (req, res) {
             vote: "no"
         });
     } else {
-        blockchain.onHold = req.body.createdBlock;
+        console.log(`Starting validation on block ${req.body.createdBlock['hash']}`);
+        blockchain.putBlockOnHold(req.body.createdBlock);
 
         const newBlockHash = req.body.createdBlock['hash'];
-        const isValidBlock = blockchain.isValidNewBlock(req.body.createdBlock);
+        const validationResult = blockchain.isValidNewBlock(req.body.createdBlock);
+        const isValidBlock = validationResult.isValid;
+
+        if (!isValidBlock) {
+            console.log(`block ${newBlockHash} is NOT valid, details as follows:`);
+            console.log(validationResult.details);
+        }
+
         const vote = isValidBlock ? "yes" : "no";
 
         // broadcast vote to every node for validation
@@ -150,10 +172,9 @@ app.post('/validate', function (req, res) {
 
         Promise.all(sendVotePromises)
             .then(function (body) {
-
                 res.json({
-                    "nodeAddress": nodeAddress,
-                    vote: "yes"
+                    note: `Block ${newBlockHash} processed and vote ${vote} transmitted to the network`,
+                    "nodeAddress": nodeAddress
                 });
             });
     }
@@ -200,8 +221,8 @@ app.post('/createBlock', function (req, res) {
             note: `Invalid request details`
         });
     } else {
-        const createdBlock = blockchain.createBlock(blockchain.getLastBlock['hash'], req.body.carPlate, req.body.block);
-        blockchain.onHold = createdBlock;
+        console.log(`Creating block for car ${req.body.carPlate} and broadcasting to network`);
+        const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block);
 
         // broadcast block to every node for validation
         const validateNodesPromises = [];
@@ -214,29 +235,9 @@ app.post('/createBlock', function (req, res) {
 
         Promise.all(validateNodesPromises)
             .then(function(body) {          // body is an array with the result of each request
-                const totalVotes = body.length;
-                var positiveVotes = 0;
-
-                body.forEach(function(res) {
-                    if (res['vote'] === 'yes') positiveVotes++;
-                });
-
-                const blockAccepted = positiveVotes >= getMinVotesRequired();
-
-                if (blockAccepted) {
-                    blockchain.addBlockOnHold();
-                } else {
-                    blockchain.discardBlockOnHold();
-                }
-
                 res.json({
-                    "blockAccepted": blockAccepted,
-                    results: body
-                });
-            })
-            .catch(function(err) {
-                res.json({
-                    note: "Connection error with network"
+                    note: `Block ${createdBlock['hash']} created and transmitted to the network for validation`,
+                    block: createdBlock
                 });
             });
     }
