@@ -27,6 +27,7 @@ const isMasterNode = (nodeType === 'master');
 app.get('/', function (req, res) {
     res.json({
         note: `Node ${nodeUuid} running on port ${PORT}`,
+        "nodeId": nodeUuid,
         "nodeAddress": nodeAddress,
         "nodeType": nodeType,
         "masterNodes": masterNodes,
@@ -107,10 +108,55 @@ app.get('/nodes', function (req, res) {
     res.json(getNodesStatus());
 });
 
-app.get('/validate', function (req, res) {
-    res.json({
-        note: `Validating block on node ${nodeUuid}`
-    });
+// receive a yes-no vote on a determined block
+app.post('/receive-vote', function (req, res) {
+
+});
+
+function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
+    return {
+        uri: networkNodeUrl + '/validate',
+        method: 'POST',
+        body: {
+            "newBlockHash": newBlockHash,
+            "vote": vote,
+            "nodeAddress": nodeAddress
+        },
+        json: true
+    };
+}
+
+app.post('/validate', function (req, res) {
+    if (!isValidMeta(req.body.originalBody)) {
+        res.json({
+            note: `Invalid car metadata`,
+            vote: "no"
+        });
+    } else {
+        blockchain.onHold = req.body.createdBlock;
+
+        const newBlockHash = req.body.createdBlock['hash'];
+        const isValidBlock = blockchain.isValidNewBlock(req.body.createdBlock);
+        const vote = isValidBlock ? "yes" : "no";
+
+        // broadcast vote to every node for validation
+        const sendVotePromises = [];
+        for (var i = 0; i < masterNodes.length; i++) {
+            sendVotePromises.push(rp(makeVoteEmissionRequest(masterNodes[i], newBlockHash, vote)));
+        }
+        for (var i = 0; i < networkNodes.length; i++) {
+            sendVotePromises.push(rp(makeVoteEmissionRequest(networkNodes[i], newBlockHash, vote)));
+        }
+
+        Promise.all(sendVotePromises)
+            .then(function (body) {
+
+                res.json({
+                    "nodeAddress": nodeAddress,
+                    vote: "yes"
+                });
+            });
+    }
 });
 
 function isValidCarPlate(plate) {
@@ -123,28 +169,76 @@ function isValidSignature(body) {
     return (!!body);
 }
 
+function isValidMeta(body) {
+    return (isValidCarPlate(body.carPlate) && isValidSignature(body));
+}
+
+function makeValidationRequest(networkNodeUrl, body, createdBlock) {
+    return {
+        uri: networkNodeUrl + '/validate',
+        method: 'POST',
+        body: {
+            "originalBody": body,
+            "createdBlock": createdBlock
+        },
+        json: true
+    };
+}
+
+// Byzantine fault tolerance
+function getMinVotesRequired() {
+    return Math.floor(2/3 * (masterNodes.length + networkNodes.length)) + 1;
+}
+
 app.post('/createBlock', function (req, res) {
     if (!isMasterNode) {
         res.json({
             note: `This node (${nodeAddress}) has no permission to create blocks. To create a new block send a request to a master node`
         });
-    } else if (!isValidCarPlate(req.body.carPlate)) {
+    } else if (!isValidMeta(req.body)) {
         res.json({
-            note: `Invalid car plate: ${req.body.carPlate}`
-        });
-    } else if (!isValidSignature(req.body)) {
-        res.json({
-            note: `Invalid car signature`
+            note: `Invalid request details`
         });
     } else {
         const createdBlock = blockchain.createBlock(blockchain.getLastBlock['hash'], req.body.carPlate, req.body.block);
+        blockchain.onHold = createdBlock;
 
-        // TODO: broadcast block to every node for validation
+        // broadcast block to every node for validation
+        const validateNodesPromises = [];
+        for (var i = 0; i < masterNodes.length; i++) {
+            validateNodesPromises.push(rp(makeValidationRequest(masterNodes[i], req.body, createdBlock)));
+        }
+        for (var i = 0; i < networkNodes.length; i++) {
+            validateNodesPromises.push(rp(makeValidationRequest(networkNodes[i], req.body, createdBlock)));
+        }
 
-        res.json({
-            note: `Block created by ${nodeAddress}, awaiting validation by other nodes`,
-            block: createdBlock
-        });
+        Promise.all(validateNodesPromises)
+            .then(function(body) {          // body is an array with the result of each request
+                const totalVotes = body.length;
+                var positiveVotes = 0;
+
+                body.forEach(function(res) {
+                    if (res['vote'] === 'yes') positiveVotes++;
+                });
+
+                const blockAccepted = positiveVotes >= getMinVotesRequired();
+
+                if (blockAccepted) {
+                    blockchain.addBlockOnHold();
+                } else {
+                    blockchain.discardBlockOnHold();
+                }
+
+                res.json({
+                    "blockAccepted": blockAccepted,
+                    results: body
+                });
+            })
+            .catch(function(err) {
+                res.json({
+                    note: "Connection error with network"
+                });
+            });
     }
 });
 
@@ -169,6 +263,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         if (!isValidNodeAddress(result.masterNodeAddress)) {
             throw `Master node address invalid: ${result.masterNodeAddress}`;
         }
+
+        // TODO: request master nodes from company's API
 
         request.post({"url": result.masterNodeAddress + '/register-and-broadcast-node', 
                       "form": {"nodeAddress": nodeAddress, "nodeType": nodeType}}, 
