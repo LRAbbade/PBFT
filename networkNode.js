@@ -150,6 +150,10 @@ function isValidMeta(body) {
 }
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
+    console.log(networkNodeUrl)
+    console.log(reqAddress)
+    console.log(reqType)
+    
     return {
         uri: `${networkNodeUrl}:${port}/validate`,
         method: 'POST',
@@ -194,10 +198,6 @@ app.post('/createBlock', function (req, res) {
 });
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
-    console.log(networkNodeUrl)
-    console.log(reqAddress)
-    console.log(reqType)
-
     return {
         uri: `${networkNodeUrl}/register-node`,
         method: 'POST',
