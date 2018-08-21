@@ -296,6 +296,11 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
             console.log(getNodesStatus());
         });
+
+        // get the current blockchain
+        request(getURI(result.masterNodeAddress, "/blockchain"), function (err, res, body) {
+            console.log(JSON.stringify(body));
+        });
     }
 
     app.listen(PORT, function () {
