@@ -17,6 +17,14 @@ Blockchain.prototype.getLastBlock = function() {
     return this.chain[this.chain.length - 1];
 };
 
+Blockchain.prototype.getLasts = function(range) {
+    if (this.chain.length < range) range = this.chain.length
+    const start = this.chain.length - range
+    const end = this.chain.length
+
+    return this.chain.slice(start, end)
+}
+
 Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
     const dataAsString = previousBlockHash + JSON.stringify(carData);
     return sha256(dataAsString);
