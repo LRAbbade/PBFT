@@ -265,30 +265,31 @@ console.log("Input any master node in the network for initialization, if this is
 prompt.start();
 prompt.get(['masterNodeAddress'], function (err, result) {
     prompt.stop();
+    const masterAddress = result.masterNodeAddress;
 
-    if (result.masterNodeAddress === 'this'){
+    if (masterAddress === 'this'){
         if (!isMasterNode) {
             throw `A common network node cannot be a master node, node type: ${nodeType}`;
         } else {
             masterNodes.push(nodeIp);
         }
     } else {
-        if (!isValidMasterNode(result.masterNodeAddress)) {
-            throw `Master node address invalid: ${result.masterNodeAddress}`;
+        if (!isValidMasterNode(masterAddress)) {
+            throw `Master node address invalid: ${masterAddress}`;
         }
 
         // TODO: request master nodes from company's API
 
-        console.log(`Requesting registration to master node ${result.masterNodeAddress}`);
+        console.log(`Requesting registration to master node ${masterAddress}`);
         request.post({
-            url: getURI(result.masterNodeAddress, "/register-and-broadcast-node"),
+            url: getURI(masterAddress, "/register-and-broadcast-node"),
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
             console.log(`Response received, adding network nodes`);
             body = JSON.parse(body);
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
-                throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
+                throw `Could not retrieve nodes from ${masterAddress}`;
             }
 
             masterNodes = body['masterNodes'];
@@ -298,8 +299,11 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         });
 
         // get the current blockchain
-        request(getURI(result.masterNodeAddress, "/blockchain"), function (err, res, body) {
-            console.log(JSON.stringify(body));
+        console.log(`Retrieving the blockchain from master node ${masterAddress}`);
+        request(getURI(masterAddress, "/blockchain"), function (err, res, body) {
+            body = JSON.parse(body);
+            blockchain.updateInstance(body);
+            console.log(`Received current blockchain, size: ${blockchain.chain.length}`);
         });
     }
 
