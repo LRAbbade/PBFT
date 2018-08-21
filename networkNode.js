@@ -240,9 +240,7 @@ app.post('/register-node', function (req, res) {
 
 app.post('/register-and-broadcast-node', function (req, res) {
     console.log(`Received request from ${req.connection.remoteAddress} to join network`);
-    console.log(`Body type: ${typeof req.body}`);
     console.log(JSON.stringify(req.body));
-    console.log('-------------------------')
     const reqAddress = req.body.nodeIp;
     const reqType = req.body.nodeType;
     
@@ -254,7 +252,7 @@ app.post('/register-and-broadcast-node', function (req, res) {
         regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
     }
 
-    console.log(`Broadcasting node ${reqAddress} ${reqType} to network`);
+    console.log(`Broadcasting node ${reqAddress} (${reqType}) to network`);
     Promise
         .all(regNodesPromises)
         .then(() => res.json(getNodesStatus()))
