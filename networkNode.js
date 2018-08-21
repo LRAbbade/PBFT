@@ -153,7 +153,7 @@ function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     console.log(networkNodeUrl)
     console.log(reqAddress)
     console.log(reqType)
-    
+
     return {
         uri: `${networkNodeUrl}:${port}/validate`,
         method: 'POST',
@@ -198,6 +198,10 @@ app.post('/createBlock', function (req, res) {
 });
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
+    console.log(networkNodeUrl)
+    console.log(reqAddress)
+    console.log(reqType)
+    
     return {
         uri: `${networkNodeUrl}/register-node`,
         method: 'POST',
@@ -280,6 +284,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
             body = JSON.parse(body);
+            console.log(body)
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
