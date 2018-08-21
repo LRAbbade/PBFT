@@ -199,11 +199,11 @@ function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
     console.log(reqType)
 
     return {
-        uri: `${networkNodeUrl}:${port}/register-node`,
+        uri: `${networkNodeUrl}/register-node`,
         method: 'POST',
         body: {
-            "nodeAddress": reqAddress,
-            "nodeType": reqType
+            nodeAddress: reqAddress,
+            nodeType: reqType
         },
         json: true
     };
@@ -246,13 +246,9 @@ app.post('/register-and-broadcast-node', function (req, res) {
         regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
     }
 
-    if (regNodesPromises.lenght > 0) {
-        Promise
-            .all(regNodesPromises)
-            .then(() => res.json(getNodesStatus()))
-    } else {
-        res.json(getNodesStatus())
-    }
+    Promise
+        .all(regNodesPromises)
+        .then(() => res.json(getNodesStatus()))
 });
 
 function isValidMasterNode(nodeAddress) {
@@ -283,14 +279,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             url: `${result.masterNodeAddress}:${port}/register-and-broadcast-node`, 
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
-
-            console.log('body1')
-            console.log(body)
-
             body = JSON.parse(body);
-
-            console.log('body2')
-            console.log(body)
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
