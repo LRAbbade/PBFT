@@ -194,6 +194,10 @@ app.post('/createBlock', function (req, res) {
 });
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
+    console.log(networkNodeUrl)
+    console.log(reqAddress)
+    console.log(reqType)
+
     return {
         uri: `${networkNodeUrl}:${port}/register-node`,
         method: 'POST',
@@ -272,9 +276,10 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         // TODO: request master nodes from company's API
 
-        request.post({"url": `${result.masterNodeAddress}:${port}/register-and-broadcast-node`, 
-                      "form": {"nodeIp": nodeIp, "nodeType": nodeType}}, 
-                     function (err, res, body) {
+        request.post({
+            url: `${result.masterNodeAddress}:${port}/register-and-broadcast-node`, 
+            form: { nodeIp, nodeType }
+        }, function (err, res, body) {
 
             body = JSON.parse(body);
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
