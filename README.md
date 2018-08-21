@@ -8,13 +8,13 @@ It's known for being a more secure alternative to the traditional [Proof of Work
 It is possible to start many nodes in the same machine or in different VMs, the initialization is the same, as follows:
 
 ```sh
-$ node networkNode.js <port> <address> <type>
+$ node networkNode.js <type> <address>
 ```
 
 Example:
 
 ```sh
-node networkNode.js 3000 http://localhost:3000 master
+node networkNode.js master http://localhost:3000
 ```
 
 Node type should be either `master` or `network`. Only `master` nodes are allowed to create blocks in PBFT. Any node will take part in the voting though.
