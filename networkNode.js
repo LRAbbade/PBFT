@@ -246,10 +246,13 @@ app.post('/register-and-broadcast-node', function (req, res) {
         regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
     }
 
-    Promise.all(regNodesPromises)
-        .then(data => {
-            res.json(getNodesStatus());
-        })
+    if (regNodesPromises.lenght > 0) {
+        Promise
+            .all(regNodesPromises)
+            .then(() => res.json(getNodesStatus()))
+    } else {
+        res.json(getNodesStatus())
+    }
 });
 
 function isValidMasterNode(nodeAddress) {
