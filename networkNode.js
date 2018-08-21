@@ -10,6 +10,7 @@ const nodeType = process.argv[2];
 const nodeIp = process.argv[3];
 const nodeUuid = uuid().split('-').join('');
 const PORT = 3002
+const runningSince = (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, "");
 
 const blockchain = new Blockchain();
 var networkNodes = [];
@@ -28,12 +29,14 @@ if ((nodeType !== "master" && nodeType !== "network") || !isValidIp(nodeIp)) {
 }
 
 const isMasterNode = (nodeType === 'master');
+console.log(`Starting ${nodeType} node at ${runningSince}`);
 
 app.get('/', function (req, res) {
     res.json({
         note: `Node running on address: ${nodeIp}:${PORT}`,
         "nodeId": nodeUuid,
         "nodeType": nodeType,
+        "runningSince": runningSince,
         "masterNodes": masterNodes,
         "networkNodes": networkNodes
     });
