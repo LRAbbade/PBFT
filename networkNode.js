@@ -98,6 +98,8 @@ function isValidMasterNode(nodeAddress) {
 }
 
 function activeEndpoints() {
+    console.log('Activating endpoints...')
+
     app.get('/', function (req, res) {
         res.json({
             note: `Node running on address: ${nodeIp}`,
@@ -113,11 +115,22 @@ function activeEndpoints() {
     });
     
     app.get('/blockchain/:page', function (req, res) {
-        const page = req.params.page
+        const page = Number(req.params.page)
+        const totalPages = Math.ceil(blockchain.chain.length / 100)
+        const previous = page - 1 >= 0 ? page - 1 : -1
+        const next = page + 1 < totalPages ? page + 1 : -1
+
         const start = page * 100
         const end = start + 100
     
-        res.send(blockchain.chain.slice(start, end))
+        const response = {
+            totalPages: totalPages,
+            previousUrl: previous !== -1 ? `${nodeIp}/blockchain/${previous}` : `none`,
+            nextUrl: next !== -1 ? `${nodeIp}/blockchain/${next}` : `none`,
+            chain: blockchain.chain.slice(start, end)
+        }
+
+        res.send(response)
     })
     
     app.get('/nodes', function (req, res) {
@@ -272,11 +285,12 @@ prompt.start();
 prompt.get(['masterNodeAddress'], function (err, result) {
     prompt.stop();
 
-    if (result.masterNodeAddress === 'this'){
+    if (result.masterNodeAddress === 'this') {
         if (!isMasterNode) {
             throw `A common network node cannot be a master node, node type: ${nodeType}`;
         } else {
             masterNodes.push(nodeIp);
+            activeEndpoints();
         }
     } else {
         if (!isValidMasterNode(result.masterNodeAddress)) {
@@ -298,7 +312,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             masterNodes = body['masterNodes'];
             networkNodes = body['networkNodes'];
 
-            activeEndpoints()
+            activeEndpoints();
         });
     }
 
