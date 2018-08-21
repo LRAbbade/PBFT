@@ -6,10 +6,10 @@ const rp = require('request-promise');
 const request = require('request');
 const uuid = require('uuid/v1');
 const prompt = require('prompt');
-const PORT = Number(process.argv[2]);
-const nodeAddress = process.argv[3];
-const nodeType = process.argv[4];
+const nodeType = process.argv[2];
+const nodeIp = process.argv[3];
 const nodeUuid = uuid().split('-').join('');
+const PORT = 3000;          // default
 
 const blockchain = new Blockchain();
 var networkNodes = [];
@@ -18,17 +18,21 @@ var masterNodes = [];
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 
-if (!(PORT && nodeAddress && nodeType) || (nodeType !== "master" && nodeType !== "network")) {    // TODO make this safe check better
-    throw `PORT, nodeAddress or nodeType are incorrect, current values: ${PORT} ${nodeAddress} ${nodeType}`;
+function isValidIp(ip) {
+    // TODO: add a regex check
+    return !!ip;
+}
+
+if ((nodeType !== "master" && nodeType !== "network") || !isValidIp(nodeIp)) {
+    throw `nodeType or ip is incorrect, current values: ${nodeType}, ${nodeIp}`;
 }
 
 const isMasterNode = (nodeType === 'master');
 
 app.get('/', function (req, res) {
     res.json({
-        note: `Node ${nodeUuid} running on port ${PORT}`,
+        note: `Node running on address: ${nodeIp}:${PORT}`,
         "nodeId": nodeUuid,
-        "nodeAddress": nodeAddress,
         "nodeType": nodeType,
         "masterNodes": masterNodes,
         "networkNodes": networkNodes
@@ -39,11 +43,9 @@ app.get('/blockchain', function (req, res) {
     res.send(blockchain);
 });
 
-function isValidRegisterRequest(reqAddress, reqType) {
-    const nodeNotAlreadyPresent = (networkNodes.indexOf(reqAddress) == -1) && (masterNodes.indexOf(reqAddress) == -1);
-    const notCurrentNode = nodeAddress != reqAddress;
-    const validReqType = (reqType === "master") || (reqType === "network");
-    return (nodeNotAlreadyPresent && notCurrentNode && validReqType && reqAddress && reqType);
+// Byzantine fault tolerance
+function getMinVotesRequired() {
+    return Math.floor(2 / 3 * (masterNodes.length + networkNodes.length)) + 1;
 }
 
 function getNodesStatus() {
@@ -54,68 +56,18 @@ function getNodesStatus() {
     };
 }
 
-function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
-    return {
-        uri: networkNodeUrl + '/register-node',
-        method: 'POST',
-        body: {
-            "nodeAddress": reqAddress,
-            "nodeType": reqType
-        },
-        json: true
-    };
-}
-
-app.post('/register-and-broadcast-node', function (req, res) {
-    const reqAddress = req.body.nodeAddress;
-    const reqType = req.body.nodeType;
-    if (isValidRegisterRequest(reqAddress, reqType)){
-        reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
-    }
-
-    const regNodesPromises = [];
-
-    for (var i = 0; i < masterNodes.length; i++) {
-        regNodesPromises.push(rp(makeRegisterRequest(masterNodes[i], reqAddress, reqType)));
-    }
-    for (var i = 0; i < networkNodes.length; i++) {
-        regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
-    }
-
-    Promise.all(regNodesPromises)
-        .then(data => {
-            res.json(getNodesStatus());
-        })
-});
-
-app.post('/register-node', function (req, res) {
-    const reqAddress = req.body.nodeAddress;
-    const reqType = req.body.nodeType;
-
-    if (!isValidRegisterRequest(reqAddress, reqType)) {
-        res.json({
-            note: `Invalid request for registering node`
-        });
-    } else {
-        reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
-        res.json({
-            note: `Node registered successfully on node ${nodeUuid}, ${nodeAddress}`
-        });
-    }
-});
-
 app.get('/nodes', function (req, res) {
     res.json(getNodesStatus());
 });
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     return {
-        uri: networkNodeUrl + '/receive-vote',
+        uri: `${networkNodeUrl}:${PORT}/receive-vote`,
         method: 'POST',
         body: {
             "newBlockHash": newBlockHash,
             "vote": vote,
-            "nodeAddress": nodeAddress
+            "nodeAddress": nodeIp
         },
         json: true
     };
@@ -136,7 +88,7 @@ app.post('/receive-vote', function (req, res) {
     }
 
     res.json({
-        note: `Vote on block ${req.body.newBlockHash} acknowledged by node ${nodeAddress}`
+        note: `Vote on block ${req.body.newBlockHash} acknowledged by node ${nodeIp}`
     });
 });
 
@@ -177,14 +129,14 @@ app.post('/validate', function (req, res) {
             .then(function (body) {
                 res.json({
                     note: `Block ${newBlockHash} processed and vote ${vote} transmitted to the network`,
-                    "nodeAddress": nodeAddress
+                    "nodeAddress": nodeIp
                 });
             });
     }
 });
 
 function isValidCarPlate(plate) {
-    // TODO
+    // TODO: check plate
     return (!!plate);
 }
 
@@ -199,7 +151,7 @@ function isValidMeta(body) {
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     return {
-        uri: networkNodeUrl + '/validate',
+        uri: `${networkNodeUrl}:${PORT}/validate`,
         method: 'POST',
         body: {
             "originalBody": body,
@@ -209,15 +161,10 @@ function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     };
 }
 
-// Byzantine fault tolerance
-function getMinVotesRequired() {
-    return Math.floor(2/3 * (masterNodes.length + networkNodes.length)) + 1;
-}
-
 app.post('/createBlock', function (req, res) {
     if (!isMasterNode) {
         res.json({
-            note: `This node (${nodeAddress}) has no permission to create blocks. To create a new block send a request to a master node`
+            note: `This node (${nodeIp}) has no permission to create blocks. To create a new block send a request to a master node`
         });
     } else if (!isValidMeta(req.body)) {
         res.json({
@@ -246,8 +193,64 @@ app.post('/createBlock', function (req, res) {
     }
 });
 
-function isValidNodeAddress(nodeAddress) {
-    // TODO validate node address
+function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
+    return {
+        uri: `${networkNodeUrl}:${PORT}/register-node`,
+        method: 'POST',
+        body: {
+            "nodeAddress": reqAddress,
+            "nodeType": reqType
+        },
+        json: true
+    };
+}
+
+function isValidRegisterRequest(reqAddress, reqType) {
+    const nodeNotAlreadyPresent = (networkNodes.indexOf(reqAddress) == -1) && (masterNodes.indexOf(reqAddress) == -1);
+    const notCurrentNode = nodeIp != reqAddress;
+    const validReqType = (reqType === "master") || (reqType === "network");
+    return (nodeNotAlreadyPresent && notCurrentNode && validReqType && reqAddress && reqType);
+}
+
+app.post('/register-node', function (req, res) {
+    const reqAddress = req.body.nodeAddress;
+    const reqType = req.body.nodeType;
+
+    if (!isValidRegisterRequest(reqAddress, reqType)) {
+        res.json({
+            note: `Invalid request for registering node`
+        });
+    } else {
+        reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
+        res.json({
+            note: `Node registered successfully on node ${nodeUuid}, ${nodeIp}`
+        });
+    }
+});
+
+app.post('/register-and-broadcast-node', function (req, res) {
+    const reqAddress = req.body.nodeIp;
+    const reqType = req.body.nodeType;
+    if (isValidRegisterRequest(reqAddress, reqType)) {
+        reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
+    }
+
+    const regNodesPromises = [];
+    for (var i = 0; i < masterNodes.length; i++) {
+        regNodesPromises.push(rp(makeRegisterRequest(masterNodes[i], reqAddress, reqType)));
+    }
+    for (var i = 0; i < networkNodes.length; i++) {
+        regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
+    }
+
+    Promise.all(regNodesPromises)
+        .then(data => {
+            res.json(getNodesStatus());
+        })
+});
+
+function isValidMasterNode(nodeAddress) {
+    // TODO validate master node address on enterprise website
     return (!!nodeAddress);
 }
 
@@ -261,17 +264,17 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         if (!isMasterNode) {
             throw `A common network node cannot be a master node, node type: ${nodeType}`;
         } else {
-            masterNodes.push(nodeAddress);
+            masterNodes.push(nodeIp);
         }
     } else {
-        if (!isValidNodeAddress(result.masterNodeAddress)) {
+        if (!isValidMasterNode(result.masterNodeAddress)) {
             throw `Master node address invalid: ${result.masterNodeAddress}`;
         }
 
         // TODO: request master nodes from company's API
 
         request.post({"url": result.masterNodeAddress + '/register-and-broadcast-node', 
-                      "form": {"nodeAddress": nodeAddress, "nodeType": nodeType}}, 
+                      "form": {"nodeIp": nodeIp, "nodeType": nodeType}}, 
                      function (err, res, body) {
 
             body = JSON.parse(body);
