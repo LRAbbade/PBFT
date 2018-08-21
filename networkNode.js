@@ -213,6 +213,7 @@ function isValidRegisterRequest(reqAddress, reqType) {
 }
 
 app.post('/register-node', function (req, res) {
+    console.log(`Received register request from ${req.connection.remoteAddress}: ${req.body}`);
     const reqAddress = req.body.nodeAddress;
     const reqType = req.body.nodeType;
 
@@ -229,12 +230,10 @@ app.post('/register-node', function (req, res) {
 });
 
 app.post('/register-and-broadcast-node', function (req, res) {
+    console.log(`Received request from ${req.connection.remoteAddress} to join network: ${req.body}`);
     const reqAddress = req.body.nodeIp;
     const reqType = req.body.nodeType;
-    if (isValidRegisterRequest(reqAddress, reqType)) {
-        reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
-    }
-
+    
     const regNodesPromises = [];
     for (var i = 0; i < masterNodes.length; i++) {
         regNodesPromises.push(rp(makeRegisterRequest(masterNodes[i], reqAddress, reqType)));
