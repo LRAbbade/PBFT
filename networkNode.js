@@ -9,7 +9,7 @@ const prompt = require('prompt');
 const nodeType = process.argv[2];
 const nodeIp = process.argv[3];
 const nodeUuid = uuid().split('-').join('');
-const PORT = 3000;          // default
+const PORT = 3002
 
 const blockchain = new Blockchain();
 var networkNodes = [];
@@ -62,7 +62,7 @@ app.get('/nodes', function (req, res) {
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/receive-vote`,
+        uri: `${networkNodeUrl}/receive-vote`,
         method: 'POST',
         body: {
             "newBlockHash": newBlockHash,
@@ -151,7 +151,7 @@ function isValidMeta(body) {
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/validate`,
+        uri: `${networkNodeUrl}/validate`,
         method: 'POST',
         body: {
             "originalBody": body,
@@ -195,11 +195,11 @@ app.post('/createBlock', function (req, res) {
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/register-node`,
+        uri: `${networkNodeUrl}/register-node`,
         method: 'POST',
         body: {
-            "nodeAddress": reqAddress,
-            "nodeType": reqType
+            nodeAddress: reqAddress,
+            nodeType: reqType
         },
         json: true
     };
@@ -242,10 +242,9 @@ app.post('/register-and-broadcast-node', function (req, res) {
         regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
     }
 
-    Promise.all(regNodesPromises)
-        .then(data => {
-            res.json(getNodesStatus());
-        })
+    Promise
+        .all(regNodesPromises)
+        .then(() => res.json(getNodesStatus()))
 });
 
 function isValidMasterNode(nodeAddress) {
@@ -272,11 +271,12 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         // TODO: request master nodes from company's API
 
-        request.post({"url": `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
-                      "form": {"nodeIp": nodeIp, "nodeType": nodeType}}, 
-                     function (err, res, body) {
-
+        request.post({
+            url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
+            form: { nodeIp, nodeType }
+        }, function (err, res, body) {
             body = JSON.parse(body);
+
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
             }
