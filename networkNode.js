@@ -273,7 +273,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         // TODO: request master nodes from company's API
 
-        request.post({"url": result.masterNodeAddress + '/register-and-broadcast-node', 
+        request.post({"url": `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
                       "form": {"nodeIp": nodeIp, "nodeType": nodeType}}, 
                      function (err, res, body) {
 
