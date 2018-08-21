@@ -236,6 +236,9 @@ app.post('/register-node', function (req, res) {
 
 app.post('/register-and-broadcast-node', function (req, res) {
     console.log(`Received request from ${req.connection.remoteAddress} to join network: ${req.body}`);
+    console.log(typeof req.body);
+    console.log(JSON.stringify(req.body));
+    console.log('-------------------------')
     const reqAddress = req.body.nodeIp;
     const reqType = req.body.nodeType;
     
