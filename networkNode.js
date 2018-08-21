@@ -276,7 +276,6 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
             body = JSON.parse(body);
-            console.log(body)
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
