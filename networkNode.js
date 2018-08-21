@@ -6,10 +6,10 @@ const rp = require('request-promise');
 const request = require('request');
 const uuid = require('uuid/v1');
 const prompt = require('prompt');
-const port = process.argv[2]
+const nodeType = process.argv[2];
 const nodeIp = process.argv[3];
-const nodeType = process.argv[4];
 const nodeUuid = uuid().split('-').join('');
+const PORT = 3002
 
 const blockchain = new Blockchain();
 var networkNodes = [];
@@ -31,7 +31,7 @@ const isMasterNode = (nodeType === 'master');
 
 app.get('/', function (req, res) {
     res.json({
-        note: `Node running on address: ${nodeIp}:${port}`,
+        note: `Node running on address: ${nodeIp}:${PORT}`,
         "nodeId": nodeUuid,
         "nodeType": nodeType,
         "masterNodes": masterNodes,
@@ -272,7 +272,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         // TODO: request master nodes from company's API
 
         request.post({
-            url: `${result.masterNodeAddress}:${port}/register-and-broadcast-node`, 
+            url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
             body = JSON.parse(body);
@@ -286,7 +286,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         });
     }
 
-    app.listen(port, function () {
-        console.log(`Listening on port ${port}...`);
+    app.listen(PORT, function () {
+        console.log(`Listening on port ${PORT}...`);
     });
 });
