@@ -218,11 +218,13 @@ app.post('/register-node', function (req, res) {
     const reqType = req.body.nodeType;
 
     if (!isValidRegisterRequest(reqAddress, reqType)) {
+        console.log(`Register request from ${reqAddress} is invalid`);
         res.json({
             note: `Invalid request for registering node`
         });
     } else {
         reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
+        console.log(`Node ${reqAddress} added to the ${reqType} list`);
         res.json({
             note: `Node registered successfully on node ${nodeUuid}, ${nodeIp}`
         });
@@ -242,6 +244,7 @@ app.post('/register-and-broadcast-node', function (req, res) {
         regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
     }
 
+    console.log(`Broadcasting node ${reqAddress} ${reqType} to network`);
     Promise
         .all(regNodesPromises)
         .then(() => res.json(getNodesStatus()))
@@ -271,10 +274,12 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         // TODO: request master nodes from company's API
 
+        console.log(`Requesting registration to master node ${result.masterNodeAddress}`);
         request.post({
             url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
+            console.log(`Response received, adding network nodes`);
             body = JSON.parse(body);
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
@@ -283,6 +288,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
             masterNodes = body['masterNodes'];
             networkNodes = body['networkNodes'];
+
+            console.log(getNodesStatus());
         });
     }
 
