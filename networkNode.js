@@ -35,6 +35,15 @@ function getURI(ip, route) {
     return `http://${ip}:${PORT}${route}`;
 }
 
+function makePostRequest(ip, route, bodyJSON) {
+    return {
+        uri: getURI(ip, route),
+        method: 'POST',
+        body: bodyJSON,
+        json: true
+    };
+}
+
 app.get('/', function (req, res) {
     res.json({
         note: `Node running on address: ${nodeIp}:${PORT}`,
@@ -68,16 +77,11 @@ app.get('/nodes', function (req, res) {
 });
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
-    return {
-        uri: getURI(networkNodeUrl, "/receive-vote"),
-        method: 'POST',
-        body: {
-            "newBlockHash": newBlockHash,
-            "vote": vote,
-            "nodeAddress": nodeIp
-        },
-        json: true
-    };
+    return makePostRequest(networkNodeUrl, "/receive-vote", {
+        "newBlockHash": newBlockHash,
+        "vote": vote,
+        "nodeAddress": nodeIp
+    });
 }
 
 app.post('/receive-vote', function (req, res) {
@@ -157,23 +161,21 @@ function isValidMeta(body) {
 }
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
-    return {
-        uri: getURI(networkNodeUrl, "/validate"),
-        method: 'POST',
-        body: {
-            "originalBody": body,
-            "createdBlock": createdBlock
-        },
-        json: true
-    };
+    return makePostRequest(networkNodeUrl, "/validate", {
+        "originalBody": body,
+        "createdBlock": createdBlock
+    });
 }
 
 app.post('/createBlock', function (req, res) {
+    console.log(`Received request to create block from ${req.connection.remoteAddress}`);
     if (!isMasterNode) {
+        console.log(`This node (${nodeIp} ${nodeType}) has no permission to create blocks`);
         res.json({
             note: `This node (${nodeIp}) has no permission to create blocks. To create a new block send a request to a master node`
         });
     } else if (!isValidMeta(req.body)) {
+        console.log(`Invalid request meta`);
         res.json({
             note: `Invalid request details`
         });
@@ -201,15 +203,10 @@ app.post('/createBlock', function (req, res) {
 });
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
-    return {
-        uri: getURI(networkNodeUrl, "/register-node"),
-        method: 'POST',
-        body: {
-            nodeAddress: reqAddress,
-            nodeType: reqType
-        },
-        json: true
-    };
+    return makePostRequest(networkNodeUrl, "/register-node", {
+        nodeAddress: reqAddress,
+        nodeType: reqType
+    });
 }
 
 function isValidRegisterRequest(reqAddress, reqType) {
@@ -220,7 +217,7 @@ function isValidRegisterRequest(reqAddress, reqType) {
 }
 
 app.post('/register-node', function (req, res) {
-    console.log(`Received register request from ${req.connection.remoteAddress}: ${req.body}`);
+    console.log(`Received register request from ${req.connection.remoteAddress}`);
     const reqAddress = req.body.nodeAddress;
     const reqType = req.body.nodeType;
 
