@@ -31,7 +31,7 @@ const isMasterNode = (nodeType === 'master');
 
 app.get('/', function (req, res) {
     res.json({
-        note: `Node running on address: ${nodeIp}:${PORT}`,
+        note: `Node running on address: ${nodeIp}`,
         "nodeId": nodeUuid,
         "nodeType": nodeType,
         "masterNodes": masterNodes,
@@ -42,6 +42,14 @@ app.get('/', function (req, res) {
 app.get('/blockchain', function (req, res) {
     res.send(blockchain);
 });
+
+app.get('/blockchain/:page', function (req, res) {
+    const page = req.params.page
+    const start = page * 100
+    const end = start + 100
+
+    res.send(blockchain.chain.slice(start, end))
+})
 
 // Byzantine fault tolerance
 function getMinVotesRequired() {
