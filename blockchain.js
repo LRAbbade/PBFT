@@ -26,7 +26,7 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
     return {
         index: this.chain.length + 1,
         id: uuid(),
-        timestamp: Date(Date.now()).split(' ').slice(0, 5).join(' '),
+        timestamp: (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, ""),
         carPlate: carPlate,
         carData: carData,
         hash: this.getBlockHash(lastBlockHash, carPlate + carData),
