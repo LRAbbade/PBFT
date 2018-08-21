@@ -62,7 +62,7 @@ app.get('/nodes', function (req, res) {
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     return {
-        uri: `${networkNodeUrl}:${port}/receive-vote`,
+        uri: `${networkNodeUrl}/receive-vote`,
         method: 'POST',
         body: {
             "newBlockHash": newBlockHash,
@@ -150,12 +150,8 @@ function isValidMeta(body) {
 }
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
-    console.log(networkNodeUrl)
-    console.log(body)
-    console.log(createdBlock)
-
     return {
-        uri: `${networkNodeUrl}:${port}/validate`,
+        uri: `${networkNodeUrl}/validate`,
         method: 'POST',
         body: {
             "originalBody": body,
@@ -198,10 +194,6 @@ app.post('/createBlock', function (req, res) {
 });
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
-    console.log(networkNodeUrl)
-    console.log(reqAddress)
-    console.log(reqType)
-
     return {
         uri: `${networkNodeUrl}/register-node`,
         method: 'POST',
