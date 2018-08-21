@@ -6,11 +6,13 @@ function Blockchain() {
     this.onHold = null;
     this.voting = null;     // information about the voting on the 'onHold' block
 
-    const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
-        data: "I am the genesis block!",
-        authors: "Alisson Moraes, Filipe Mazzon, Lucas Abbade e Matheus Silva"
-    });
-    this.chain.push(genesisBlock);
+    for(i = 0; i < 305; i++) {
+        const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
+            data: "I am the genesis block!",
+            authors: "Alisson Moraes, Filipe Mazzon, Lucas Abbade e Matheus Silva"
+        });
+        this.chain.push(genesisBlock);
+    }
 }
 
 Blockchain.prototype.getLastBlock = function() {
