@@ -6,10 +6,10 @@ const rp = require('request-promise');
 const request = require('request');
 const uuid = require('uuid/v1');
 const prompt = require('prompt');
-const nodeType = process.argv[2];
+const port = process.argv[2]
 const nodeIp = process.argv[3];
+const nodeType = process.argv[4];
 const nodeUuid = uuid().split('-').join('');
-const PORT = 3000;          // default
 
 const blockchain = new Blockchain();
 var networkNodes = [];
@@ -31,7 +31,7 @@ const isMasterNode = (nodeType === 'master');
 
 app.get('/', function (req, res) {
     res.json({
-        note: `Node running on address: ${nodeIp}:${PORT}`,
+        note: `Node running on address: ${nodeIp}:${port}`,
         "nodeId": nodeUuid,
         "nodeType": nodeType,
         "masterNodes": masterNodes,
@@ -62,7 +62,7 @@ app.get('/nodes', function (req, res) {
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/receive-vote`,
+        uri: `${networkNodeUrl}:${port}/receive-vote`,
         method: 'POST',
         body: {
             "newBlockHash": newBlockHash,
@@ -151,7 +151,7 @@ function isValidMeta(body) {
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/validate`,
+        uri: `${networkNodeUrl}:${port}/validate`,
         method: 'POST',
         body: {
             "originalBody": body,
@@ -195,7 +195,7 @@ app.post('/createBlock', function (req, res) {
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/register-node`,
+        uri: `${networkNodeUrl}:${port}/register-node`,
         method: 'POST',
         body: {
             "nodeAddress": reqAddress,
@@ -272,7 +272,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         // TODO: request master nodes from company's API
 
-        request.post({"url": `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
+        request.post({"url": `${result.masterNodeAddress}:${port}/register-and-broadcast-node`, 
                       "form": {"nodeIp": nodeIp, "nodeType": nodeType}}, 
                      function (err, res, body) {
 
@@ -286,7 +286,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         });
     }
 
-    app.listen(PORT, function () {
-        console.log(`Listening on port ${PORT}...`);
+    app.listen(port, function () {
+        console.log(`Listening on port ${port}...`);
     });
 });
