@@ -31,6 +31,10 @@ if ((nodeType !== "master" && nodeType !== "network") || !isValidIp(nodeIp)) {
 const isMasterNode = (nodeType === 'master');
 console.log(`Starting ${nodeType} node at ${runningSince}`);
 
+function getURI(ip, route) {
+    return `http://${ip}:${PORT}${route}`;
+}
+
 app.get('/', function (req, res) {
     res.json({
         note: `Node running on address: ${nodeIp}:${PORT}`,
@@ -65,7 +69,7 @@ app.get('/nodes', function (req, res) {
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/receive-vote`,
+        uri: getURI(networkNodeUrl, "/receive-vote"),
         method: 'POST',
         body: {
             "newBlockHash": newBlockHash,
@@ -154,7 +158,7 @@ function isValidMeta(body) {
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/validate`,
+        uri: getURI(networkNodeUrl, "/validate"),
         method: 'POST',
         body: {
             "originalBody": body,
@@ -198,7 +202,7 @@ app.post('/createBlock', function (req, res) {
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
     return {
-        uri: `${networkNodeUrl}:${PORT}/register-node`,
+        uri: getURI(networkNodeUrl, "/register-node"),
         method: 'POST',
         body: {
             nodeAddress: reqAddress,
@@ -282,7 +286,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         console.log(`Requesting registration to master node ${result.masterNodeAddress}`);
         request.post({
-            url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
+            url: getURI(result.masterNodeAddress, "/register-and-broadcast-node"),
             form: { nodeIp, nodeType }
         }, function (err, res, body) {
             console.log(`Response received, adding network nodes`);
