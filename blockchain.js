@@ -31,13 +31,14 @@ Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
 }
 
 Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
+    carData.plate = carPlate
+
     return {
         index: this.chain.length + 1,
         id: uuid(),
         timestamp: (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, ""),
-        carPlate: carPlate,
         carData: carData,
-        hash: this.getBlockHash(lastBlockHash, carPlate + carData),
+        hash: this.getBlockHash(lastBlockHash, carData),
         previousBlockHash: lastBlockHash
     };
 }
