@@ -115,6 +115,9 @@ function fullUpdateBlockchain(url, callback) {
         body = JSON.parse(body);
         blockchain.chain.concat(body["chain"]);
 
+        console.log('blockchain')
+        console.log(blockchain.chain)
+        
         if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
         else callback()
     })
