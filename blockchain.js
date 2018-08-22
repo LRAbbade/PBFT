@@ -8,14 +8,20 @@ function Blockchain() {
 
     const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
         data: "I am the genesis block!",
-        authors: "Alisson Moraes, Filipe Mazzon, Lucas Abbade e Matheus Silva"
+        authors: "Alisson Morais, Filipe Mazzon, Lucas Abbade e Matheus Silva"
     });
     this.chain.push(genesisBlock);
 }
 
+Blockchain.prototype.updateInstance = function(blockchain) {
+    this.chain = blockchain.chain;
+    this.onHold = blockchain.onHold;
+    this.voting = blockchain.voting;
+}
+
 Blockchain.prototype.getLastBlock = function() {
     return this.chain[this.chain.length - 1];
-};
+}
 
 Blockchain.prototype.getLasts = function(range) {
     if (this.chain.length < range) range = this.chain.length
@@ -37,6 +43,7 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
         index: this.chain.length + 1,
         id: uuid(),
         timestamp: (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, ""),
+        carPlate: carPlate,
         carData: carData,
         hash: this.getBlockHash(lastBlockHash, carData),
         previousBlockHash: lastBlockHash
