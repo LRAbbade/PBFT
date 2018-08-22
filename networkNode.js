@@ -112,11 +112,10 @@ function makeFullDownloadRequest(networkNodeUrl, page) {
 
 function fullUpdateBlockchain(url, callback) {
     request(url, function(err, res, body) {
-        body = JSON.parse(body)
-        blockchain.chain.concat(body["chain"])
+        body = JSON.parse(body);
+        blockchain.chain.concat(body["chain"]);
 
-        if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
-        else callback()
+        body["nextUrl"] !== "none" ? fullUpdateBlockchain(body["nextUrl"], callback) : callback()
     })
 }
 
@@ -335,14 +334,12 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         }, function (err, res, body) {
             body = JSON.parse(body);
 
-            console.log(body)
-
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
             }
 
             if (blockchainType === "full") {
-                blockchain.chain = []
+                blockchain.chain = [];
 
                 fullUpdateBlockchain(body['data'], () => {
                     masterNodes = body['masterNodes'];
@@ -351,7 +348,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
                     activeEndpoints();
                 })
             } else if (blockchainType === "light") {
-                blockchain.chain = body['data']
+                blockchain.chain = body['data'];
 
                 masterNodes = body['masterNodes'];
                 networkNodes = body['networkNodes'];
