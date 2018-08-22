@@ -351,6 +351,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
                         url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
                         form: { nodeType, nodeIp }
                     }, function (err, res, body) {
+                        body = JSON.parse(body);
+                        
                         masterNodes = body['masterNodes'];
                         networkNodes = body['networkNodes'];
 
@@ -364,6 +366,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
                     url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
                     form: { nodeType, nodeIp }
                 }, function (err, res, body) {
+                    body = JSON.parse(body);
+                    
                     masterNodes = body['masterNodes'];
                     networkNodes = body['networkNodes'];
 
