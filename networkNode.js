@@ -113,7 +113,7 @@ function makeFullDownloadRequest(networkNodeUrl, page) {
 function fullUpdateBlockchain(url, callback) {
     request(url, function(err, res, body) {
         body = JSON.parse(body);
-        blockchain = blockchain.chain.concat(body['chain']);
+        blockchain.chain = blockchain.chain.concat(body['chain']);
         
         if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
         else callback()
