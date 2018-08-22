@@ -287,7 +287,12 @@ function activeEndpoints() {
     
         Promise
             .all(regNodesPromises)
-            .then(() => console.log(`Node ${reqAddress} added to network`));
+            .then(() => {
+                const payload = `Node ${reqAddress} added to network`
+                console.log(payload)
+                
+                res.send({ note: payload })
+            });
     });
 
     app.post('/start-register', function (req, res) {
