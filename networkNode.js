@@ -115,6 +115,9 @@ function fullUpdateBlockchain(url, callback) {
         body = JSON.parse(body);
         blockchain.chain.concat(body["chain"]);
 
+        console.log('body2')
+        console.log(body)
+
         console.log('blockchain')
         console.log(blockchain.chain)
         
@@ -125,7 +128,7 @@ function fullUpdateBlockchain(url, callback) {
 
 function activeEndpoints() {
     console.log('Activating endpoints...')
-    console.log(blockchain.chain)
+    /* console.log(blockchain.chain) */
 
     app.get('/', function (req, res) {
         res.json({
