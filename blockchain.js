@@ -101,8 +101,6 @@ Blockchain.prototype.isValidNewBlock = function(newBlock) {
     const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carData']);
     const correctNewHash = recalculatedNewHash === newBlock['hash'];
 
-    console.log()
-
     return {
         details: {
             "correctIndex": correctIndex,
