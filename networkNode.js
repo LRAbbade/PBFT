@@ -114,6 +114,15 @@ function activeEndpoints() {
         res.send(blockchain);
     });
     
+    app.get('/blockchain/lasts', function (req, res) {
+        const size = blockchain.chain.length
+        const lastCount = 10
+
+        const response = { chain: blockchain.chain.slice(size - lastCount, size) }
+
+        res.send(response)
+    })
+
     app.get('/blockchain/:page', function (req, res) {
         const page = Number(req.params.page)
         const totalPages = Math.ceil(blockchain.chain.length / 100)
