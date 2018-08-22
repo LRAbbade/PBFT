@@ -98,8 +98,10 @@ Blockchain.prototype.isValidNewBlock = function(newBlock) {
     const lastBlock = this.getLastBlock();
     const correctIndex = newBlock['index'] === lastBlock['index'] + 1;
     const correctLastHash = newBlock['previousBlockHash'] === lastBlock['hash'];
-    const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carData']['carPlate'] + newBlock['carData']);
+    const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carData']);
     const correctNewHash = recalculatedNewHash === newBlock['hash'];
+
+    console.log()
 
     return {
         details: {
