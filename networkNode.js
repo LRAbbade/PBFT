@@ -122,7 +122,6 @@ function fullUpdateBlockchain(url, callback) {
 
 function activeEndpoints() {
     console.log('Activating endpoints...')
-    console.log(blockchain.chain)
 
     app.get('/', function (req, res) {
         res.json({
