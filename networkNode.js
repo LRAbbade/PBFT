@@ -289,7 +289,7 @@ function activeEndpoints() {
             .all(regNodesPromises)
             .then(() => {
                 console.log(`Node ${reqAddress} added to network`)
-                res.send(getNodesStatus())
+                res.json(getNodesStatus())
             });
     });
 
