@@ -16,11 +16,6 @@ const blockchain = new Blockchain();
 var networkNodes = [];
 var masterNodes = [];
 
-function isValidIp(ip) {
-    // TODO: add a regex check
-    return !!ip;
-}
-
 // Byzantine fault tolerance
 function getMinVotesRequired() {
     return Math.floor(2 / 3 * (masterNodes.length + networkNodes.length)) + 1;
@@ -34,9 +29,14 @@ function getNodesStatus() {
     };
 }
 
-function getLastsBlocks(count) {
+function getLastBlocks(count) {
     const size = blockchain.chain.length
-    return { chain: blockchain.chain.slice(size - count, size) }
+    return blockchain.chain.slice(size - count, size)
+}
+
+function isValidIp(ip) {
+    // TODO: add a regex check
+    return !!ip;
 }
 
 function isValidCarPlate(plate) {
@@ -104,10 +104,19 @@ function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
 
 function makeFullDownloadRequest(networkNodeUrl, page) {
     return {
-        uri: `${networkNodeUrl}/blockchain/${page}`,
+        url: `${networkNodeUrl}/blockchain/${page}`,
         method: 'GET',
         json: true
     };
+}
+
+function fullUpdateBlockchain(url, callback) {
+    request(url, function(err, res, body) {
+        blockchain.chain.concat(body["chain"])
+
+        if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
+        else callback()
+    })
 }
 
 function activeEndpoints() {
@@ -138,6 +147,7 @@ function activeEndpoints() {
     
         const response = {
             totalPages: totalPages,
+            url: `${nodeIp}/blockchain/`,
             previousUrl: previous !== -1 ? `${nodeIp}/blockchain/${previous}` : `none`,
             nextUrl: next !== -1 ? `${nodeIp}/blockchain/${next}` : `none`,
             chain: blockchain.chain.slice(start, end)
@@ -279,7 +289,7 @@ function activeEndpoints() {
             .all(regNodesPromises)
             .then(() => {
                 const nodeStatus = getNodesStatus()
-                nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : 
+                nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : getLastBlocks(10)
 
                 res.json(nodeStatus)
             })
@@ -328,17 +338,24 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             }
 
             if (blockchainType === "full") {
-                
-            } else if (blockchainType === "light") {
+                blockchain.chain = []
 
+                fullUpdateBlockchain(body.data, () => {
+                    masterNodes = body['masterNodes'];
+                    networkNodes = body['networkNodes'];
+
+                    activeEndpoints();
+                })
+            } else if (blockchainType === "light") {
+                blockchain.chain = body['data']
+
+                masterNodes = body['masterNodes'];
+                networkNodes = body['networkNodes'];
+
+                activeEndpoints();
             } else {
                 // TODO unregister from network
             }
-
-            masterNodes = body['masterNodes'];
-            networkNodes = body['networkNodes'];
-
-            activeEndpoints();
         });
     }
 
