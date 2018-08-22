@@ -275,7 +275,6 @@ function activeEndpoints() {
     app.post('/register-and-broadcast-node', function (req, res) {
         console.log(`Received request from ${req.connection.remoteAddress} to join network: ${req.body}`);
         const reqType = req.body.nodeType;
-        const reqBcType = req.body.blockchainType;
         const reqAddress = req.body.nodeIp;
         
         const regNodesPromises = [];
@@ -288,12 +287,15 @@ function activeEndpoints() {
     
         Promise
             .all(regNodesPromises)
-            .then(() => {
-                const nodeStatus = getNodesStatus()
-                nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : getLastBlocks(10)
+            .then(() => console.log(`Node ${reqAddress} added to network`));
+    });
 
-                res.json(nodeStatus)
-            })
+    app.post('/start-register', function (req, res) {
+        const reqBcType = req.body.blockchainType
+        const nodeStatus = getNodesStatus()
+        nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : getLastBlocks(10)
+
+        res.json(nodeStatus)
     });
 }
 
@@ -329,8 +331,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         // TODO: request master nodes from company's API
 
         request.post({
-            url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
-            form: { nodeType, blockchainType, nodeIp }
+            url: `${result.masterNodeAddress}:${PORT}/start-register`, 
+            form: { blockchainType }
         }, function (err, res, body) {
             body = JSON.parse(body);
 
@@ -342,18 +344,28 @@ prompt.get(['masterNodeAddress'], function (err, result) {
                 blockchain.chain = [];
 
                 fullUpdateBlockchain(body['data'], () => {
+                    request.post({
+                        url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
+                        form: { nodeType, nodeIp }
+                    }, function (err, res, body) {
+                        masterNodes = body['masterNodes'];
+                        networkNodes = body['networkNodes'];
+
+                        activeEndpoints();
+                    })
+                })
+            } else if (blockchainType === "light") {
+                blockchain.chain = body['data'];
+
+                request.post({
+                    url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
+                    form: { nodeType, nodeIp }
+                }, function (err, res, body) {
                     masterNodes = body['masterNodes'];
                     networkNodes = body['networkNodes'];
 
                     activeEndpoints();
                 })
-            } else if (blockchainType === "light") {
-                blockchain.chain = body['data'];
-
-                masterNodes = body['masterNodes'];
-                networkNodes = body['networkNodes'];
-
-                activeEndpoints();
             } else {
                 // TODO unregister from network
             }
