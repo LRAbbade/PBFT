@@ -13,9 +13,15 @@ function Blockchain() {
     this.chain.push(genesisBlock);
 }
 
+Blockchain.prototype.updateInstance = function(blockchain) {
+    this.chain = blockchain.chain;
+    this.onHold = blockchain.onHold;
+    this.voting = blockchain.voting;
+}
+
 Blockchain.prototype.getLastBlock = function() {
     return this.chain[this.chain.length - 1];
-};
+}
 
 Blockchain.prototype.getLasts = function(range) {
     if (this.chain.length < range) range = this.chain.length

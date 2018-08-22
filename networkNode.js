@@ -38,13 +38,21 @@ function getURI(ip, route) {
     return `http://${ip}:${PORT}${route}`;
 }
 
-// TODO makePostRequest
+function makePostRequest(ip, route, bodyJSON) {
+    return {
+        uri: getURI(ip, route),
+        method: 'POST',
+        body: bodyJSON,
+        json: true
+    };
+}
 
 app.get('/', function (req, res) {
     res.json({
         note: `Node running on address: ${nodeIp}`,
         "nodeId": nodeUuid,
         "nodeType": nodeType,
+        "runningSince": runningSince,
         "masterNodes": masterNodes,
         "networkNodes": networkNodes
     });
@@ -97,16 +105,11 @@ app.get('/nodes', function (req, res) {
 });
 
 function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
-    return {
-        uri: `${networkNodeUrl}/receive-vote`,
-        method: 'POST',
-        body: {
-            "newBlockHash": newBlockHash,
-            "vote": vote,
-            "nodeAddress": nodeIp
-        },
-        json: true
-    };
+    return makePostRequest(networkNodeUrl, "/receive-vote", {
+        "newBlockHash": newBlockHash,
+        "vote": vote,
+        "nodeAddress": nodeIp
+    });
 }
 
 app.post('/receive-vote', function (req, res) {
@@ -186,23 +189,21 @@ function isValidMeta(body) {
 }
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
-    return {
-        uri: `${networkNodeUrl}/validate`,
-        method: 'POST',
-        body: {
-            "originalBody": body,
-            "createdBlock": createdBlock
-        },
-        json: true
-    };
+    return makePostRequest(networkNodeUrl, "/validate", {
+        "originalBody": body,
+        "createdBlock": createdBlock
+    });
 }
 
 app.post('/createBlock', function (req, res) {
+    console.log(`Received request to create block from ${req.connection.remoteAddress}`);
     if (!isMasterNode) {
+        console.log(`This node (${nodeIp} ${nodeType}) has no permission to create blocks`);
         res.json({
             note: `This node (${nodeIp}) has no permission to create blocks. To create a new block send a request to a master node`
         });
     } else if (!isValidMeta(req.body)) {
+        console.log(`Invalid request meta`);
         res.json({
             note: `Invalid request details`
         });
@@ -230,15 +231,10 @@ app.post('/createBlock', function (req, res) {
 });
 
 function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
-    return {
-        uri: `${networkNodeUrl}/register-node`,
-        method: 'POST',
-        body: {
-            nodeAddress: reqAddress,
-            nodeType: reqType
-        },
-        json: true
-    };
+    return makePostRequest(networkNodeUrl, "/register-node", {
+        nodeAddress: reqAddress,
+        nodeType: reqType
+    });
 }
 
 function isValidRegisterRequest(reqAddress, reqType) {
@@ -249,16 +245,18 @@ function isValidRegisterRequest(reqAddress, reqType) {
 }
 
 app.post('/register-node', function (req, res) {
-    console.log(`Received register request from ${req.connection.remoteAddress}: ${req.body}`);
+    console.log(`Received register request from ${req.connection.remoteAddress}`);
     const reqAddress = req.body.nodeAddress;
     const reqType = req.body.nodeType;
 
     if (!isValidRegisterRequest(reqAddress, reqType)) {
+        console.log(`Register request from ${reqAddress} is invalid`);
         res.json({
             note: `Invalid request for registering node`
         });
     } else {
         reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
+        console.log(`Node ${reqAddress} added to the ${reqType} list`);
         res.json({
             note: `Node registered successfully on node ${nodeUuid}, ${nodeIp}`
         });
@@ -278,6 +276,7 @@ app.post('/register-and-broadcast-node', function (req, res) {
         regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
     }
 
+    console.log(`Broadcasting node ${reqAddress} (${reqType}) to network`);
     Promise
         .all(regNodesPromises)
         .then(() => {
@@ -338,16 +337,16 @@ console.log("Input any master node in the network for initialization, if this is
 prompt.start();
 prompt.get(['masterNodeAddress'], function (err, result) {
     prompt.stop();
-    const masterAddress = result.masterNodeAddress
+    const masterAddress = result.masterNodeAddress;
 
-    if (masterAddress === 'this') {
+    if (masterAddress === 'this'){
         if (!isMasterNode) {
             throw `A common network node cannot be a master node, node type: ${nodeType}`;
         } else {
             masterNodes.push(nodeIp);
         }
     } else {
-        if (!isValidMasterNode(result.masterNodeAddress)) {
+        if (!isValidMasterNode(masterAddress)) {
             throw `Master node address invalid: ${masterAddress}`;
         }
 
@@ -362,7 +361,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             body = JSON.parse(body);
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
-                throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
+                throw `Could not retrieve nodes from ${masterAddress}`;
             }
 
             if (blockchainType === "full") {
