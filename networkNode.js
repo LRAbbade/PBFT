@@ -112,6 +112,9 @@ function makeFullDownloadRequest(networkNodeUrl, page) {
 
 function fullUpdateBlockchain(url, callback) {
     request(url, function(err, res, body) {
+        body = JSON.parse(body)
+        console.log('body2')
+        console.log(body)
         blockchain.chain.concat(body["chain"])
 
         if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
@@ -342,7 +345,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             if (blockchainType === "full") {
                 blockchain.chain = []
 
-                fullUpdateBlockchain(body.data, () => {
+                fullUpdateBlockchain(body['data'], () => {
                     masterNodes = body['masterNodes'];
                     networkNodes = body['networkNodes'];
 
