@@ -120,6 +120,20 @@ function fullUpdateBlockchain(url, callback) {
     })
 }
 
+function requestRegister(masterIp, nodeType, nodeIp) {
+    request.post({
+        url: `${masterIp}:${PORT}/register-and-broadcast-node`, 
+        form: { nodeType, nodeIp }
+    }, function (err, res, body) {
+        body = JSON.parse(body);
+        
+        masterNodes = body['masterNodes'];
+        networkNodes = body['networkNodes'];
+
+        activeEndpoints();
+    })
+}
+
 function activeEndpoints() {
     console.log('Activating endpoints...')
 
@@ -345,34 +359,12 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
             if (blockchainType === "full") {
                 blockchain.chain = [];
-
                 fullUpdateBlockchain(body['data'], () => {
-                    request.post({
-                        url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
-                        form: { nodeType, nodeIp }
-                    }, function (err, res, body) {
-                        body = JSON.parse(body);
-                        
-                        masterNodes = body['masterNodes'];
-                        networkNodes = body['networkNodes'];
-
-                        activeEndpoints();
-                    })
+                    requestRegister(result.masterNodeAddress, nodeType, nodeIp)
                 })
             } else if (blockchainType === "light") {
                 blockchain.chain = body['data'];
-
-                request.post({
-                    url: `${result.masterNodeAddress}:${PORT}/register-and-broadcast-node`, 
-                    form: { nodeType, nodeIp }
-                }, function (err, res, body) {
-                    body = JSON.parse(body);
-                    
-                    masterNodes = body['masterNodes'];
-                    networkNodes = body['networkNodes'];
-
-                    activeEndpoints();
-                })
+                requestRegister(result.masterNodeAddress, nodeType, nodeIp)
             } else {
                 // TODO unregister from network
             }
