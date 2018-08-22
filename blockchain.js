@@ -9,7 +9,7 @@ function Blockchain() {
     for(i = 0; i < 305; i++) {
         const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
             data: "I am the genesis block!",
-            authors: "Alisson Moraes, Filipe Mazzon, Lucas Abbade e Matheus Silva"
+            authors: "Alisson Morais, Filipe Mazzon, Lucas Abbade e Matheus Silva"
         });
         this.chain.push(genesisBlock);
     }
