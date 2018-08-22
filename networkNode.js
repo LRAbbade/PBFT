@@ -288,10 +288,8 @@ function activeEndpoints() {
         Promise
             .all(regNodesPromises)
             .then(() => {
-                const payload = `Node ${reqAddress} added to network`
-                console.log(payload)
-                
-                res.send({ note: payload })
+                console.log(`Node ${reqAddress} added to network`)
+                res.send(getNodesStatus())
             });
     });
 
