@@ -147,7 +147,7 @@ function activeEndpoints() {
     
         const response = {
             totalPages: totalPages,
-            url: `${nodeIp}/blockchain/`,
+            baseUrl: `${nodeIp}/blockchain/`,
             previousUrl: previous !== -1 ? `${nodeIp}/blockchain/${previous}` : `none`,
             nextUrl: next !== -1 ? `${nodeIp}/blockchain/${next}` : `none`,
             chain: blockchain.chain.slice(start, end)
@@ -332,6 +332,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             form: { nodeType, blockchainType, nodeIp }
         }, function (err, res, body) {
             body = JSON.parse(body);
+
+            console.log(body)
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
