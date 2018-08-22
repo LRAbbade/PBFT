@@ -34,17 +34,9 @@ function getNodesStatus() {
     };
 }
 
-function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
-    return {
-        uri: `${networkNodeUrl}/receive-vote`,
-        method: 'POST',
-        body: {
-            "newBlockHash": newBlockHash,
-            "vote": vote,
-            "nodeAddress": nodeIp
-        },
-        json: true
-    };
+function getLastsBlocks(count) {
+    const size = blockchain.chain.length
+    return { chain: blockchain.chain.slice(size - count, size) }
 }
 
 function isValidCarPlate(plate) {
@@ -59,6 +51,31 @@ function isValidSignature(body) {
 
 function isValidMeta(body) {
     return (isValidCarPlate(body.carPlate) && isValidSignature(body));
+}
+
+function isValidRegisterRequest(reqAddress, reqType) {
+    const nodeNotAlreadyPresent = (networkNodes.indexOf(reqAddress) == -1) && (masterNodes.indexOf(reqAddress) == -1);
+    const notCurrentNode = nodeIp != reqAddress;
+    const validReqType = (reqType === "master") || (reqType === "network");
+    return (nodeNotAlreadyPresent && notCurrentNode && validReqType && reqAddress && reqType);
+}
+
+function isValidMasterNode(nodeAddress) {
+    // TODO validate master node address on enterprise website
+    return (!!nodeAddress);
+}
+
+function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
+    return {
+        uri: `${networkNodeUrl}/receive-vote`,
+        method: 'POST',
+        body: {
+            "newBlockHash": newBlockHash,
+            "vote": vote,
+            "nodeAddress": nodeIp
+        },
+        json: true
+    };
 }
 
 function makeValidationRequest(networkNodeUrl, body, createdBlock) {
@@ -85,16 +102,12 @@ function makeRegisterRequest(networkNodeUrl, reqAddress, reqType) {
     };
 }
 
-function isValidRegisterRequest(reqAddress, reqType) {
-    const nodeNotAlreadyPresent = (networkNodes.indexOf(reqAddress) == -1) && (masterNodes.indexOf(reqAddress) == -1);
-    const notCurrentNode = nodeIp != reqAddress;
-    const validReqType = (reqType === "master") || (reqType === "network");
-    return (nodeNotAlreadyPresent && notCurrentNode && validReqType && reqAddress && reqType);
-}
-
-function isValidMasterNode(nodeAddress) {
-    // TODO validate master node address on enterprise website
-    return (!!nodeAddress);
+function makeFullDownloadRequest(networkNodeUrl, page) {
+    return {
+        uri: `${networkNodeUrl}/blockchain/${page}`,
+        method: 'GET',
+        json: true
+    };
 }
 
 function activeEndpoints() {
@@ -113,15 +126,6 @@ function activeEndpoints() {
     app.get('/blockchain', function (req, res) {
         res.send(blockchain);
     });
-    
-    app.get('/blockchain/lasts', function (req, res) {
-        const size = blockchain.chain.length
-        const lastCount = 10
-
-        const response = { chain: blockchain.chain.slice(size - lastCount, size) }
-
-        res.send(response)
-    })
 
     app.get('/blockchain/:page', function (req, res) {
         const page = Number(req.params.page)
@@ -273,7 +277,12 @@ function activeEndpoints() {
     
         Promise
             .all(regNodesPromises)
-            .then(() => res.json(getNodesStatus()))
+            .then(() => {
+                const nodeStatus = getNodesStatus()
+                nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : 
+
+                res.json(nodeStatus)
+            })
     });
 }
 
@@ -316,6 +325,14 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
                 throw `Could not retrieve nodes from ${result.masterNodeAddress}`;
+            }
+
+            if (blockchainType === "full") {
+                
+            } else if (blockchainType === "light") {
+
+            } else {
+                // TODO unregister from network
             }
 
             masterNodes = body['masterNodes'];
