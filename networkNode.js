@@ -7,7 +7,8 @@ const request = require('request');
 const uuid = require('uuid/v1');
 const prompt = require('prompt');
 const nodeType = process.argv[2];
-const nodeIp = process.argv[3];
+const blockchainType = process.argv[3];
+const nodeIp = process.argv[4];
 const nodeUuid = uuid().split('-').join('');
 const PORT = 3002
 const runningSince = (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, "");
@@ -24,8 +25,10 @@ function isValidIp(ip) {
     return !!ip;
 }
 
-if ((nodeType !== "master" && nodeType !== "network") || !isValidIp(nodeIp)) {
-    throw `nodeType or ip is incorrect, current values: ${nodeType}, ${nodeIp}`;
+if ((nodeType !== "master" && nodeType !== "network") ||
+    (blockchainType !== "full" && blockchainType !== "light") ||
+    !isValidIp(nodeIp)) {
+    throw `nodeType or ip is incorrect, current values: ${nodeType}, ${blockchainType}, ${nodeIp}`;
 }
 
 const isMasterNode = (nodeType === 'master');
@@ -46,7 +49,7 @@ function makePostRequest(ip, route, bodyJSON) {
 
 app.get('/', function (req, res) {
     res.json({
-        note: `Node running on address: ${nodeIp}:${PORT}`,
+        note: `Node running on address: ${nodeIp}`,
         "nodeId": nodeUuid,
         "nodeType": nodeType,
         "runningSince": runningSince,
@@ -71,6 +74,31 @@ function getNodesStatus() {
         "networkNodes": networkNodes
     };
 }
+
+function getLastBlocks(count) {
+    const size = blockchain.chain.length
+    return blockchain.chain.slice(size - count, size)
+}
+
+app.get('/blockchain/:page', function (req, res) {
+    const page = Number(req.params.page)
+    const totalPages = Math.ceil(blockchain.chain.length / 100)
+    const previous = page - 1 >= 0 ? page - 1 : -1
+    const next = page + 1 < totalPages ? page + 1 : -1
+
+    const start = page * 100
+    const end = start + 100
+
+    const response = {
+        totalPages: totalPages,
+        baseUrl: `${nodeIp}/blockchain/`,
+        previousUrl: previous !== -1 ? `${nodeIp}/blockchain/${previous}` : `none`,
+        nextUrl: next !== -1 ? `${nodeIp}/blockchain/${next}` : `none`,
+        chain: blockchain.chain.slice(start, end)
+    }
+
+    res.send(response)
+})
 
 app.get('/nodes', function (req, res) {
     res.json(getNodesStatus());
@@ -236,10 +264,9 @@ app.post('/register-node', function (req, res) {
 });
 
 app.post('/register-and-broadcast-node', function (req, res) {
-    console.log(`Received request from ${req.connection.remoteAddress} to join network`);
-    console.log(JSON.stringify(req.body));
-    const reqAddress = req.body.nodeIp;
+    console.log(`Received request from ${req.connection.remoteAddress} to join network: ${req.body}`);
     const reqType = req.body.nodeType;
+    const reqAddress = req.body.nodeIp;
     
     const regNodesPromises = [];
     for (var i = 0; i < masterNodes.length; i++) {
@@ -252,12 +279,57 @@ app.post('/register-and-broadcast-node', function (req, res) {
     console.log(`Broadcasting node ${reqAddress} (${reqType}) to network`);
     Promise
         .all(regNodesPromises)
-        .then(() => res.json(getNodesStatus()))
+        .then(() => {
+            console.log(`Node ${reqAddress} added to network`)
+            res.json(getNodesStatus())
+        });
+});
+
+app.post('/start-register', function (req, res) {
+    const reqBcType = req.body.blockchainType
+    const nodeStatus = getNodesStatus()
+    nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : getLastBlocks(10)
+
+    res.json(nodeStatus)
 });
 
 function isValidMasterNode(nodeAddress) {
     // TODO validate master node address on enterprise website
     return (!!nodeAddress);
+}
+
+function makeFullDownloadRequest(networkNodeUrl, page) {
+    return {
+        url: `${networkNodeUrl}/blockchain/${page}`,
+        method: 'GET',
+        json: true
+    };
+}
+
+function fullUpdateBlockchain(url, callback) {
+    request(url, function(err, res, body) {
+        body = JSON.parse(body);
+        blockchain.chain = blockchain.chain.concat(body['chain']);
+        
+        if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
+        else callback()
+    })
+}
+
+function requestRegister(masterIp, nodeType, nodeIp) {
+    request.post({
+        url: `${masterIp}:${PORT}/register-and-broadcast-node`, 
+        form: { nodeType, nodeIp }
+    }, function (err, res, body) {
+        body = JSON.parse(body);
+        
+        masterNodes = body['masterNodes'];
+        networkNodes = body['networkNodes'];
+
+        app.listen(PORT, function () {
+            console.log(`Listening on port ${PORT}...`);
+        });
+    })
 }
 
 console.log("Input any master node in the network for initialization, if this is the first node, just input 'this'");
@@ -282,8 +354,8 @@ prompt.get(['masterNodeAddress'], function (err, result) {
 
         console.log(`Requesting registration to master node ${masterAddress}`);
         request.post({
-            url: getURI(masterAddress, "/register-and-broadcast-node"),
-            form: { nodeIp, nodeType }
+            url: getURI(masterAddress, "/start-register"), 
+            form: { blockchainType }
         }, function (err, res, body) {
             console.log(`Response received, adding network nodes`);
             body = JSON.parse(body);
@@ -292,22 +364,17 @@ prompt.get(['masterNodeAddress'], function (err, result) {
                 throw `Could not retrieve nodes from ${masterAddress}`;
             }
 
-            masterNodes = body['masterNodes'];
-            networkNodes = body['networkNodes'];
-
-            console.log(getNodesStatus());
-        });
-
-        // get the current blockchain
-        console.log(`Retrieving the blockchain from master node ${masterAddress}`);
-        request(getURI(masterAddress, "/blockchain"), function (err, res, body) {
-            body = JSON.parse(body);
-            blockchain.updateInstance(body);
-            console.log(`Received current blockchain, size: ${blockchain.chain.length}`);
+            if (blockchainType === "full") {
+                blockchain.chain = [];
+                fullUpdateBlockchain(body['data'], () => {
+                    requestRegister(result.masterNodeAddress, nodeType, nodeIp)
+                })
+            } else if (blockchainType === "light") {
+                blockchain.chain = body['data'];
+                requestRegister(result.masterNodeAddress, nodeType, nodeIp)
+            } else {
+                // TODO unregister from network
+            }
         });
     }
-
-    app.listen(PORT, function () {
-        console.log(`Listening on port ${PORT}...`);
-    });
 });
