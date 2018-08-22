@@ -113,8 +113,6 @@ function makeFullDownloadRequest(networkNodeUrl, page) {
 function fullUpdateBlockchain(url, callback) {
     request(url, function(err, res, body) {
         body = JSON.parse(body)
-        console.log('body2')
-        console.log(body)
         blockchain.chain.concat(body["chain"])
 
         if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
@@ -124,6 +122,7 @@ function fullUpdateBlockchain(url, callback) {
 
 function activeEndpoints() {
     console.log('Activating endpoints...')
+    console.log(blockchain.chain)
 
     app.get('/', function (req, res) {
         res.json({
