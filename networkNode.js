@@ -308,6 +308,9 @@ app.post('/start-register', function (req, res) {
     isEndpointEnabled(req, res, () => {
         const reqBcType = req.body.blockchainType
         const nodeStatus = getNodesStatus()
+
+        console.log(`Starting node registration of type: ${reqBcType}`)
+
         nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : getLastBlocks(10)
 
         res.json(nodeStatus)
@@ -346,6 +349,7 @@ function requestRegister(masterIp, nodeType, nodeIp) {
         
         masterNodes = body['masterNodes'];
         networkNodes = body['networkNodes'];
+        isBlockchainAvailable = true;
     })
 }
 
@@ -361,6 +365,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             throw `A common network node cannot be a master node, node type: ${nodeType}`;
         } else {
             masterNodes.push(nodeIp);
+            isBlockchainAvailable = true;
         }
     } else {
         if (!isValidMasterNode(masterAddress)) {
@@ -384,11 +389,11 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             if (blockchainType === "full") {
                 blockchain.chain = [];
                 fullUpdateBlockchain(body['data'], () => {
-                    requestRegister(result.masterNodeAddress, nodeType, nodeIp)
+                    requestRegister(result.masterNodeAddress, nodeType, nodeIp);
                 })
             } else if (blockchainType === "light") {
                 blockchain.chain = body['data'];
-                requestRegister(result.masterNodeAddress, nodeType, nodeIp)
+                requestRegister(result.masterNodeAddress, nodeType, nodeIp);
             } else {
                 // TODO unregister from network
             }
