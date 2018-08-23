@@ -340,9 +340,9 @@ function fullUpdateBlockchain(url, callback) {
     })
 }
 
-function requestRegister(masterIp, nodeType, nodeIp) {
+function requestRegister(ip, nodeType, nodeIp) {
     request.post({
-        url: `${masterIp}:${PORT}/register-and-broadcast-node`, 
+        url: getURI(ip, "/register-and-broadcast-node"), 
         form: { nodeType, nodeIp }
     }, function (err, res, body) {
         body = JSON.parse(body);
