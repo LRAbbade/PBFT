@@ -310,8 +310,7 @@ app.post('/start-register', function (req, res) {
         const nodeStatus = getNodesStatus()
 
         console.log(`Starting node registration of type: ${reqBcType}`)
-
-        nodeStatus.data = reqBcType === "full" ? `${nodeIp}/blockchain/0` : getLastBlocks(10)
+        nodeStatus.data = reqBcType === "full" ? getURI(nodeIp, "/blockchain/0") : getLastBlocks(10)
 
         res.json(nodeStatus)
     });
