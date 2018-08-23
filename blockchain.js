@@ -38,9 +38,12 @@ Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
 
 Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
     carData.plate = carPlate
+    var index = 1
+
+    try { index = this.chain[this.chain.length - 1].index + 1 } catch(err) { index = 1 }
 
     return {
-        index: this.chain.length + 1,
+        index: index,
         id: uuid(),
         timestamp: (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, ""),
         carPlate: carPlate,
