@@ -389,11 +389,11 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             if (blockchainType === "full") {
                 blockchain.chain = [];
                 fullUpdateBlockchain(body['data'], () => {
-                    requestRegister(result.masterNodeAddress, nodeType, nodeIp);
+                    requestRegister(masterAddress, nodeType, nodeIp);
                 })
             } else if (blockchainType === "light") {
                 blockchain.chain = body['data'];
-                requestRegister(result.masterNodeAddress, nodeType, nodeIp);
+                requestRegister(masterAddress, nodeType, nodeIp);
             } else {
                 // TODO unregister from network
             }
