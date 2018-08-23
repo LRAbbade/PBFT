@@ -31,21 +31,22 @@ Blockchain.prototype.getLasts = function(range) {
     return this.chain.slice(start, end)
 }
 
-Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
-    const dataAsString = previousBlockHash + JSON.stringify(carData);
+Blockchain.prototype.getBlockHash = function(previousBlockHash, carPlate, carData) {
+    const dataAsString = previousBlockHash + JSON.stringify(carPlate) + JSON.stringify(carData);
     return sha256(dataAsString);
 }
 
 Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
-    carData.plate = carPlate
+    var index = 1
+    try { index = this.chain[this.chain.length - 1].index + 1 } catch(err) { index = 1 }
 
     return {
-        index: this.chain.length + 1,
+        index: index,
         id: uuid(),
         timestamp: (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, ""),
         carPlate: carPlate,
         carData: carData,
-        hash: this.getBlockHash(lastBlockHash, carData),
+        hash: this.getBlockHash(lastBlockHash, carPlate, carData),
         previousBlockHash: lastBlockHash
     };
 }
@@ -105,7 +106,7 @@ Blockchain.prototype.isValidNewBlock = function(newBlock) {
     const lastBlock = this.getLastBlock();
     const correctIndex = newBlock['index'] === lastBlock['index'] + 1;
     const correctLastHash = newBlock['previousBlockHash'] === lastBlock['hash'];
-    const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carData']);
+    const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carPlate'], newBlock['carData']);
     const correctNewHash = recalculatedNewHash === newBlock['hash'];
 
     return {
