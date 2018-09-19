@@ -76,9 +76,10 @@ app.get('/nodes', function (req, res) {
     res.json(getNodesStatus());
 });
 
-function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
+function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, newBlockIndex, vote) {
     return makePostRequest(networkNodeUrl, "/receive-vote", {
         "newBlockHash": newBlockHash,
+        "newBlockIndex": newBlockIndex,
         "vote": vote,
         "nodeAddress": nodeIp
     });
@@ -86,16 +87,17 @@ function makeVoteEmissionRequest(networkNodeUrl, newBlockHash, vote) {
 
 app.post('/receive-vote', function (req, res) {
     const blockHash = req.body.newBlockHash;
+    const blockIndex = req.body.newBlockIndex;
     const vote = req.body.vote;
     console.log(`Vote ${vote} by ${req.body.nodeAddress} was received on block ${blockHash}`);
-    const results = blockchain.processVote(blockHash, req.body.nodeAddress, vote);
+    const results = blockchain.processVote(blockHash, blockIndex, req.body.nodeAddress, vote);
 
     if (results.yesVotes >= getMinVotesRequired()) {
+        blockchain.addBlockOnBuffer(blockHash);
         console.log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
-        blockchain.addBlockOnHold();
     } else if (results.totalVotes >= masterNodes.length + networkNodes.length) { // should never be greater, but just in case
+        blockchain.discardBlockOnBuffer(blockHash);
         console.log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
-        blockchain.discardBlockOnHold();
     }
 
     res.json({
@@ -117,6 +119,7 @@ app.post('/validate', function (req, res) {
         blockchain.putBlockOnHold(req.body.createdBlock);
 
         const newBlockHash = req.body.createdBlock['hash'];
+        const newBlockIndex = req.body.createdBlock['index'];
         const validationResult = blockchain.isValidNewBlock(req.body.createdBlock);
         const isValidBlock = validationResult.isValid;
 
@@ -130,10 +133,10 @@ app.post('/validate', function (req, res) {
         // broadcast vote to every node for validation
         const sendVotePromises = [];
         for (var i = 0; i < masterNodes.length; i++) {
-            sendVotePromises.push(rp(makeVoteEmissionRequest(masterNodes[i], newBlockHash, vote)));
+            sendVotePromises.push(rp(makeVoteEmissionRequest(masterNodes[i], newBlockHash, newBlockIndex, vote)));
         }
         for (var i = 0; i < networkNodes.length; i++) {
-            sendVotePromises.push(rp(makeVoteEmissionRequest(networkNodes[i], newBlockHash, vote)));
+            sendVotePromises.push(rp(makeVoteEmissionRequest(networkNodes[i], newBlockHash, newBlockIndex, vote)));
         }
 
         Promise.all(sendVotePromises)
@@ -167,6 +170,15 @@ function makeValidationRequest(networkNodeUrl, body, createdBlock) {
     });
 }
 
+function checkTimestampFormat(timestamp) {
+    // TODO: make this safer
+    return (!!timestamp.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/));
+}
+
+function getCurrentTimestamp() {
+    return (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, "");
+}
+
 app.post('/createBlock', function (req, res) {
     console.log(`Received request to create block from ${req.connection.remoteAddress}`);
     if (!isMasterNode) {
@@ -181,7 +193,9 @@ app.post('/createBlock', function (req, res) {
         });
     } else {
         console.log(`Creating block for car ${req.body.carPlate} and broadcasting to network`);
-        const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block);
+
+        const timestamp = checkTimestampFormat(req.body.timestamp) ? req.body.timestamp : getCurrentTimestamp();        // temporary measure to add data for testing, will be removed in the future
+        const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block, timestamp);
 
         // broadcast block to every node for validation
         const validateNodesPromises = [];
@@ -311,3 +325,5 @@ prompt.get(['masterNodeAddress'], function (err, result) {
         console.log(`Listening on port ${PORT}...`);
     });
 });
+
+// TODO: when a node goes offline, warn others to be removed from nodes list
