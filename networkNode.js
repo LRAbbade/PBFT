@@ -322,12 +322,11 @@ app.post('/register-and-broadcast-node', function (req, res) {
 app.post('/start-register', function (req, res) {
     isEndpointEnabled(req, res, () => {
         const reqBcType = req.body.blockchainType;
-        const nodeStatus = getNodesStatus();
 
         console.log(`Starting node registration of type '${reqBcType}' for ${req.connection.remoteAddress}`);
-        nodeStatus.data = reqBcType === "full" ? nodeIp + "/blockchain/0" : getLastBlocks(10);
-
-        res.json(nodeStatus);
+        res.json({
+            data: reqBcType === "full" ? nodeIp + "/blockchain/0" : getLastBlocks(10)
+        });
     });
 });
 
@@ -360,7 +359,7 @@ function fullUpdateBlockchain(url, callback) {
 
 function requestRegister(ip, nodeType, nodeIp) {
     request.post({
-        url: `${ip}/register-and-broadcast-node`, 
+        url: getURI(ip, '/register-and-broadcast-node'),
         form: { nodeType, nodeIp }
     }, function (err, res, body) {
         console.log(`Received response for register request`);
