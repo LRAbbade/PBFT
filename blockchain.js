@@ -54,6 +54,10 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData, ti
     };
 }
 
+Blockchain.prototype.logBuffer = function() {
+    console.log(`Current buffer size: ${Object.keys(this.buffer).length}`);
+}
+
 Blockchain.prototype.putBlockOnHold = function(block) {
     if (!(block['hash'] in this.buffer)) {
         this.buffer[block['hash']] = {
@@ -68,7 +72,7 @@ Blockchain.prototype.putBlockOnHold = function(block) {
         console.log(`Block ${block['hash']} already in buffer`);
     }
 
-    console.log(`Current buffer: ${Object.keys(this.buffer)}`);
+    this.logBuffer();
 }
 
 // TODO: this might blow up if node is not a full node
@@ -112,13 +116,13 @@ Blockchain.prototype.addBlockOnBuffer = function(hash) {
     this.chain.push(this.buffer[hash].block);
     delete this.buffer[hash];
 
-    console.log(`Current buffer: ${Object.keys(this.buffer)}`);
+    this.logBuffer();
 }
 
 Blockchain.prototype.discardBlockOnBuffer = function(hash) {
     delete this.buffer[hash];
 
-    console.log(`Current buffer: ${Object.keys(this.buffer)}`);
+    this.logBuffer();
 }
 
 Blockchain.prototype.isValidNewBlock = function(newBlock) {
