@@ -65,6 +65,9 @@ Blockchain.prototype.putBlockOnHold = function(block) {
             }
         }
     }
+
+    console.log(`Current buffer:`);
+    console.log(this.buffer);
 }
 
 // TODO: this might blow up if node is not a full node
@@ -107,10 +110,16 @@ Blockchain.prototype.addBlockOnBuffer = function(hash) {
 
     this.chain.push(this.buffer[hash].block);
     delete this.buffer[hash];
+
+    console.log(`Current buffer:`);
+    console.log(this.buffer);
 }
 
 Blockchain.prototype.discardBlockOnBuffer = function(hash) {
     delete this.buffer[hash];
+    
+    console.log(`Current buffer:`);
+    console.log(this.buffer);
 }
 
 Blockchain.prototype.isValidNewBlock = function(newBlock) {
