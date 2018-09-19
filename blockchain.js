@@ -3,7 +3,8 @@ const sha256 = require('sha256');
 
 function Blockchain() {
     this.chain = [];
-    this.buffer = {};       // holds information about blocks on voting proccess
+    this.buffer = {};           // holds information about blocks on voting proccess
+    this.votingBuffer = {};     // holds votes for blocks that were not received yet
 
     const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
         data: "I am the genesis block!",
@@ -56,6 +57,7 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData, ti
 
 Blockchain.prototype.logBuffer = function() {
     console.log(`Current buffer size: ${Object.keys(this.buffer).length}`);
+    console.log(`Current voting buffer size: ${Object.keys(this.votingBuffer).length}`);
 }
 
 Blockchain.prototype.putBlockOnHold = function(block) {
@@ -68,6 +70,16 @@ Blockchain.prototype.putBlockOnHold = function(block) {
                 yesVotes: 0
             }
         }
+
+        if (block['hash'] in this.votingBuffer) {
+            // process votes received before block
+            this.votingBuffer[block['hash']].forEach(voteInfo => {
+                this.processVote(voteInfo.blockHash, 
+                                 voteInfo.blockIndex, 
+                                 voteInfo.nodeAddress,
+                                 voteInfo.vote);
+            });
+        }
     } else {
         console.log(`Block ${block['hash']} already in buffer`);
     }
@@ -79,6 +91,14 @@ Blockchain.prototype.putBlockOnHold = function(block) {
 // test if there's a possibility of the array index being different than 'index-1'
 Blockchain.prototype.isBlockInBlockchain = function(hash, index) {
     return (this.chain[index-2]['hash'] === hash);
+}
+
+Blockchain.prototype.holdVoteOnBuffer = function(blockHash, voteInfo) {
+    if (!(blockHash in this.votingBuffer)) {
+        this.votingBuffer[blockHash] = [];
+    }
+
+    this.votingBuffer[blockHash].push(voteInfo);
 }
 
 // returns current number of yes votes for block on voting after new vote is processed
@@ -99,7 +119,14 @@ Blockchain.prototype.processVote = function(blockHash, blockIndex, nodeAddress, 
             if (vote === "yes") this.buffer[blockHash].voting.yesVotes++;
         }
     } else {
-        // TODO: a vote might be received before the block was put on buffer
+        // a vote might be received before the block was put on buffer
+        this.holdVoteOnBuffer(blockHash, {
+            blockHash: blockHash,
+            blockIndex: blockIndex,
+            nodeAddress: nodeAddress,
+            vote: vote
+        });
+        return { warning: `block ${blockHash} being voted not yet received` };
     }
 
     return { 
@@ -108,21 +135,20 @@ Blockchain.prototype.processVote = function(blockHash, blockIndex, nodeAddress, 
     };
 }
 
+Blockchain.prototype.closeVotingOnBlock = function(hash) {
+    delete this.buffer[hash];
+    delete this.votingBuffer[hash];
+
+    this.logBuffer();
+}
+
 Blockchain.prototype.addBlockOnBuffer = function(hash) {
     if (!(hash in this.buffer)) {
         throw `Trying to add block that is not on buffer: ${hash}`;
     }
 
     this.chain.push(this.buffer[hash].block);
-    delete this.buffer[hash];
-
-    this.logBuffer();
-}
-
-Blockchain.prototype.discardBlockOnBuffer = function(hash) {
-    delete this.buffer[hash];
-
-    this.logBuffer();
+    this.closeVotingOnBlock(hash);
 }
 
 Blockchain.prototype.isValidNewBlock = function(newBlock) {

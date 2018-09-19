@@ -10,7 +10,7 @@ const nodeType = process.argv[2];
 const blockchainType = process.argv[3];
 const nodeIp = process.argv[4];
 const nodeUuid = uuid().split('-').join('');
-const PORT = 3002
+const PORT = 3002;
 const runningSince = (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, "");
 
 const blockchain = new Blockchain();
@@ -130,17 +130,24 @@ app.post('/receive-vote', function (req, res) {
         console.log(`Vote ${vote} by ${req.body.nodeAddress} was received on block ${blockHash}`);
         const results = blockchain.processVote(blockHash, blockIndex, req.body.nodeAddress, vote);
 
-        if (results.yesVotes >= getMinVotesRequired()) {
-            blockchain.addBlockOnBuffer(blockHash);
-            console.log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
-        } else if (results.totalVotes >= masterNodes.length + networkNodes.length) { // should never be greater, but just in case
-            blockchain.discardBlockOnBuffer(blockHash);
-            console.log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
-        }
+        if ('warning' in results) {
+            console.log(results.warning);
+            res.json({
+                note: results.warning
+            });
+        } else {
+            if (results.yesVotes >= getMinVotesRequired()) {
+                blockchain.addBlockOnBuffer(blockHash);
+                console.log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
+            } else if (results.totalVotes >= masterNodes.length + networkNodes.length) { // should never be greater, but just in case
+                blockchain.closeVotingOnBlock(blockHash);
+                console.log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
+            }
 
-        res.json({
-            note: `Vote on block ${req.body.newBlockHash} acknowledged by node ${nodeIp}`
-        });
+            res.json({
+                note: `Vote on block ${req.body.newBlockHash} acknowledged by node ${nodeIp}`
+            });
+        }
     });
 });
 
