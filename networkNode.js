@@ -349,8 +349,12 @@ function fullUpdateBlockchain(url, callback) {
         body = JSON.parse(body);
         blockchain.chain = blockchain.chain.concat(body['chain']);
         
-        if (body["nextUrl"] !== "none") fullUpdateBlockchain(body["nextUrl"], callback)
-        else callback()
+        if (body["nextUrl"] !== "none") { 
+            fullUpdateBlockchain(body["nextUrl"], callback); 
+        } 
+        else { 
+            callback();
+        }
     })
 }
 
@@ -359,6 +363,8 @@ function requestRegister(ip, nodeType, nodeIp) {
         url: `${ip}/register-and-broadcast-node`, 
         form: { nodeType, nodeIp }
     }, function (err, res, body) {
+        console.log(`Received response for register request`);
+        console.log(body);
         body = JSON.parse(body);
         
         masterNodes = body['masterNodes'];
