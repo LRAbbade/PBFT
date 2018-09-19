@@ -55,7 +55,7 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData, ti
 }
 
 Blockchain.prototype.putBlockOnHold = function(block) {
-    if (!block['hash'] in buffer) {
+    if (!block['hash'] in this.buffer) {
         this.buffer[block['hash']] = {
             block: block,
             voting: {
