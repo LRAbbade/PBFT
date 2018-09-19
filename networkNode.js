@@ -99,9 +99,9 @@ app.get('/blockchain/:page', function (req, res) {
 
         const response = {
             totalPages: totalPages,
-            baseUrl: `${nodeIp}/blockchain/`,
-            previousUrl: previous !== -1 ? `${nodeIp}/blockchain/${previous}` : `none`,
-            nextUrl: next !== -1 ? `${nodeIp}/blockchain/${next}` : `none`,
+            baseUrl: getURI(nodeIp, '/blockchain/'),
+            previousUrl: previous !== -1 ? getURI(nodeIp, `/blockchain/${previous}`) : `none`,
+            nextUrl: next !== -1 ? getURI(nodeIp, `/blockchain/${next}`) : `none`,
             chain: blockchain.chain.slice(start, end)
         }
 
@@ -329,7 +329,7 @@ app.post('/start-register', function (req, res) {
 
         console.log(`Starting node registration of type '${reqBcType}' for ${req.connection.remoteAddress}`);
         res.json({
-            data: reqBcType === "full" ? nodeIp + "/blockchain/0" : getLastBlocks(10)
+            data: reqBcType === "full" ? getURI(nodeIp, "/blockchain/0") : getLastBlocks(10)
         });
     });
 });
