@@ -365,6 +365,10 @@ function requestRegister(ip, nodeType, nodeIp) {
         console.log(`Received response for register request`);
         console.log(body);
         body = JSON.parse(body);
+
+        if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
+            throw `Could not retrieve nodes from ${masterAddress}`;
+        }
         
         masterNodes = body['masterNodes'];
         networkNodes = body['networkNodes'];
@@ -401,10 +405,6 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             console.log(`Response received, adding network nodes`);
             console.log(body);
             body = JSON.parse(body);
-
-            if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
-                throw `Could not retrieve nodes from ${masterAddress}`;
-            }
 
             if (blockchainType === "full") {
                 blockchain.chain = [];
