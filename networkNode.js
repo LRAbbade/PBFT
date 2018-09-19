@@ -69,7 +69,7 @@ app.get('/blockchain', function (req, res) {
     isEndpointEnabled(req, res, () => res.send(blockchain));
 });
 
-app.get('/blockchain/size', (req, res) => {
+app.get('/blockchainSize', (req, res) => {
     isEndpointEnabled(req, res, () => { 
         res.json({
             note: blockchain.length
