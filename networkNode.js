@@ -236,6 +236,7 @@ app.post('/createBlock', function (req, res) {
             });
         } else {
             console.log(`Creating block for car ${req.body.carPlate} and broadcasting to network`);
+            console.log(req.body);
 
             var timestamp;
             if (timestamp in req.body && checkTimestampFormat(req.body.timestamp)) {
