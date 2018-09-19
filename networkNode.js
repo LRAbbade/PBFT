@@ -89,19 +89,19 @@ function getLastBlocks(count) {
 
 app.get('/blockchain/:page', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        const page = Number(req.params.page)
-        const totalPages = Math.ceil(blockchain.chain.length / 100)
-        const previous = page - 1 >= 0 ? page - 1 : -1
-        const next = page + 1 < totalPages ? page + 1 : -1
+        const page = Number(req.params.page);
+        const totalPages = Math.ceil(blockchain.chain.length / 100);
+        const previous = page - 1 >= 0 ? page - 1 : -1;
+        const next = page + 1 < totalPages ? page + 1 : -1;
 
-        const start = page * 100
-        const end = start + 100
+        const start = page * 100;
+        const end = start + 100;
 
         const response = {
             totalPages: totalPages,
             baseUrl: `${nodeIp}/blockchain/`,
-            previousUrl: previous !== -1 ? getURI(nodeIp, `/blockchain/${previous}`) : `none`,
-            nextUrl: next !== -1 ? getURI(nodeIp, `/blockchain/${next}`) : `none`,
+            previousUrl: previous !== -1 ? `${nodeIp}/blockchain/${previous}` : `none`,
+            nextUrl: next !== -1 ? `${nodeIp}/blockchain/${next}` : `none`,
             chain: blockchain.chain.slice(start, end)
         }
 
@@ -321,13 +321,13 @@ app.post('/register-and-broadcast-node', function (req, res) {
 
 app.post('/start-register', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        const reqBcType = req.body.blockchainType
-        const nodeStatus = getNodesStatus()
+        const reqBcType = req.body.blockchainType;
+        const nodeStatus = getNodesStatus();
 
-        console.log(`Starting node registration of type: ${reqBcType}`)
-        nodeStatus.data = reqBcType === "full" ? getURI(nodeIp, "/blockchain/0") : getLastBlocks(10)
+        console.log(`Starting node registration of type: ${reqBcType}`);
+        nodeStatus.data = reqBcType === "full" ? nodeIp + "/blockchain/0" : getLastBlocks(10);
 
-        res.json(nodeStatus)
+        res.json(nodeStatus);
     });
 });
 
@@ -356,7 +356,7 @@ function fullUpdateBlockchain(url, callback) {
 
 function requestRegister(ip, nodeType, nodeIp) {
     request.post({
-        url: getURI(ip, "/register-and-broadcast-node"), 
+        url: `${ip}/register-and-broadcast-node`, 
         form: { nodeType, nodeIp }
     }, function (err, res, body) {
         body = JSON.parse(body);
