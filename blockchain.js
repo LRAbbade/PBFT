@@ -3,8 +3,7 @@ const sha256 = require('sha256');
 
 function Blockchain() {
     this.chain = [];
-    this.onHold = null;
-    this.voting = null;     // information about the voting on the 'onHold' block
+    this.buffer = {};       // holds information about blocks on voting proccess
 
     const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
         data: "I am the genesis block!",
@@ -28,11 +27,11 @@ Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
     return sha256(dataAsString);
 }
 
-Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
+Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData, timestamp) {
     return {
         index: this.chain.length + 1,
         id: uuid(),
-        timestamp: (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, ""),
+        timestamp: timestamp,
         carPlate: carPlate,
         carData: carData,
         hash: this.getBlockHash(lastBlockHash, carPlate + carData),
@@ -40,55 +39,63 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData) {
     };
 }
 
-// TODO: add tolerance for when multiple new blocks are requested at the same time
 Blockchain.prototype.putBlockOnHold = function(block) {
-    this.onHold = block;
-    this.voting = {
-        nodesVoted: [],
-        votes: [],
-        yesVotes: 0
-    };
+    if (!block['hash'] in buffer) {
+        this.buffer[block['hash']] = {
+            block: block,
+            voting: {
+                nodesVoted: [],
+                votes: [],
+                yesVotes: 0
+            }
+        }
+    }
 }
 
-// returns current number of yes votes for 'onHold' block after new vote is processed
-Blockchain.prototype.processVote = function(blockHash, nodeAddress, vote) {
-    if (blockHash === this.getLastBlock()['hash']) return -1;   // this block was already accepted (can happen if a vote comes after consensus was already achieved)
+// TODO: this might blow up if node is not a full node
+// test if there's a possibility of the array index being different than 'index-1'
+Blockchain.prototype.isBlockInBlockchain = function(hash, index) {
+    return (this.chain[index-1]['hash'] === hash);
+}
 
-    // TODO: a vote might be received before the block was put on hold, this will crash the if below
+// returns current number of yes votes for block on voting after new vote is processed
+Blockchain.prototype.processVote = function(blockHash, blockIndex, nodeAddress, vote) {
+    if (this.isBlockInBlockchain(blockHash, blockIndex)) {              // this block was already accepted (can happen if a vote comes after consensus was already achieved)
+        console.log(`Block ${blockHash} already accepted. Index: ${blockIndex}`);
+        return -1;
+    }
 
-    // check if block being voted is the same as 'onHold' and vote is not repeated
-    if (blockHash === this.onHold['hash']) {
-        if (this.voting.nodesVoted.indexOf(nodeAddress) == -1) {
-            this.voting.nodesVoted.push(nodeAddress);
-            this.voting.votes.push({
+    // check if block being voted is in buffer and vote is not repeated
+    if (blockHash in this.buffer) {
+        if (this.buffer[blockHash].voting.nodesVoted.indexOf(nodeAddress) == -1) {
+            this.buffer[blockHash].voting.nodesVoted.push(nodeAddress);
+            this.buffer[blockHash].voting.votes.push({
                 node: nodeAddress,
                 vote: vote
             });
-            if (vote === "yes") this.voting.yesVotes++;
+            if (vote === "yes") this.buffer[blockHash].voting.yesVotes++;
         }
     } else {
-        // TODO: if block is different from 'onHold', something must be wrong
+        // TODO: a vote might be received before the block was put on buffer
     }
 
     return { 
-        totalVotes: this.voting.nodesVoted.length,
-        yesVotes: this.voting.yesVotes
+        totalVotes: this.buffer[blockHash].voting.nodesVoted.length,
+        yesVotes: this.buffer[blockHash].voting.yesVotes
     };
 }
 
-Blockchain.prototype.addBlockOnHold = function() {
-    if (!this.onHold) {
-        throw `Invalid block on hold: ${this.onHold}`;
+Blockchain.prototype.addBlockOnBuffer = function(hash) {
+    if (!hash in this.buffer) {
+        throw `Trying to add block that is not on buffer: ${hash}`;
     }
 
-    this.chain.push(this.onHold);
-    this.onHold = null;
-    this.voting = null;
+    this.chain.push(this.buffer[hash].block);
+    delete this.buffer[hash];
 }
 
-Blockchain.prototype.discardBlockOnHold = function() {
-    this.onHold = null;
-    this.voting = null;
+Blockchain.prototype.discardBlockOnBuffer = function(hash) {
+    delete this.buffer[hash];
 }
 
 Blockchain.prototype.isValidNewBlock = function(newBlock) {

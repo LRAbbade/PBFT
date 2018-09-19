@@ -32,12 +32,15 @@ To see the current blockchain, reach `http://ip:port/blockchain`.
 To add a block to the blockchain, make a `post` request to `http://ip:port/createBlock` with a `json` payload as follows:
 ```js
 {
+	"timestamp": "YYYY-MM-DD HH:MM:SS",		// optional
 	"carPlate": "<plate>",
 	"block": {
 		"data": "any data, can be an array, or json, str..."
 	}
 }
 ```
+
+You can define an optional `timestamp` for testing purposes. If not specified, the `timestamp` will be the current time.
 
 The `response` will contain the whole created block that was broadcast to the network, however, this does not mean the block was accepted. You can request the `/blockchain` to any node to check if the block was accepted.
 
