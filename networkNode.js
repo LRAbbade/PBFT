@@ -240,19 +240,12 @@ app.post('/createBlock', function (req, res) {
 
             var timestamp;
             if ('timestamp' in req.body && checkTimestampFormat(req.body['timestamp'])) {
-                console.log(`Received timestamp from request`);
                 timestamp = req.body['timestamp'];        // temporary measure to add data for testing, will be removed in the future
             } else {
-                if (!('timestamp' in req.body)) {
-                    console.log(`Timestamp was NOT received`);
-                } else if (!checkTimestampFormat(req.body['timestamp'])) {
-                    console.log(`Timestamp format is wrong: ${req.body['timestamp']}`);
-                }
                 timestamp = getCurrentTimestamp();
             }
 
-            console.log(`Timestamp: ${timestamp}`);
-
+            console.log(`Timestamp used: ${timestamp}`);
             const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block, timestamp);
 
             // broadcast block to every node for validation
