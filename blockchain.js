@@ -7,7 +7,7 @@ function Blockchain() {
 
     const genesisBlock = this.createBlock("CarChainGenesisBlock", "-", {
         data: "I am the genesis block!",
-        authors: "Alisson Moraes, Filipe Mazzon, Lucas Abbade e Matheus Silva"
+        authors: "Alisson Morais, Filipe Mazzon, Lucas Abbade e Matheus Silva"
     });
     this.chain.push(genesisBlock);
 }
@@ -22,19 +22,34 @@ Blockchain.prototype.getLastBlock = function() {
     return this.chain[this.chain.length - 1];
 }
 
-Blockchain.prototype.getBlockHash = function(previousBlockHash, carData) {
-    const dataAsString = previousBlockHash + JSON.stringify(carData);
+Blockchain.prototype.getLasts = function(range) {
+    if (this.chain.length < range) range = this.chain.length
+    const start = this.chain.length - range
+    const end = this.chain.length
+
+    return this.chain.slice(start, end)
+}
+
+Blockchain.prototype.getBlockHash = function(previousBlockHash, carPlate, carData) {
+    const dataAsString = previousBlockHash + JSON.stringify(carPlate) + JSON.stringify(carData);
     return sha256(dataAsString);
 }
 
 Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData, timestamp) {
+    var index = 1;
+    try { 
+        index = this.chain[this.chain.length - 1].index + 1;
+    } catch(err) { 
+        index = 1;
+    }
+
     return {
-        index: this.chain.length + 1,
+        index: index,
         id: uuid(),
         timestamp: timestamp,
         carPlate: carPlate,
         carData: carData,
-        hash: this.getBlockHash(lastBlockHash, carPlate + carData),
+        hash: this.getBlockHash(lastBlockHash, carPlate, carData),
         previousBlockHash: lastBlockHash
     };
 }
@@ -102,7 +117,7 @@ Blockchain.prototype.isValidNewBlock = function(newBlock) {
     const lastBlock = this.getLastBlock();
     const correctIndex = newBlock['index'] === lastBlock['index'] + 1;
     const correctLastHash = newBlock['previousBlockHash'] === lastBlock['hash'];
-    const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carPlate'] + newBlock['carData']);
+    const recalculatedNewHash = this.getBlockHash(newBlock['previousBlockHash'], newBlock['carPlate'], newBlock['carData']);
     const correctNewHash = recalculatedNewHash === newBlock['hash'];
 
     return {
