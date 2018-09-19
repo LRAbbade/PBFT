@@ -69,6 +69,10 @@ app.get('/blockchain', function (req, res) {
     isEndpointEnabled(req, res, () => res.send(blockchain));
 });
 
+app.get('/blockchain/size', (req, res) => {
+    isEndpointEnabled(req, res, () => res.send(blockchain.length));
+});
+
 // Byzantine fault tolerance
 function getMinVotesRequired() {
     return Math.floor(2 / 3 * (masterNodes.length + networkNodes.length)) + 1;
