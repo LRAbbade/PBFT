@@ -316,6 +316,9 @@ app.post('/register-and-broadcast-node', function (req, res) {
             .then(() => {
                 console.log(`Node ${reqAddress} added to network`)
                 res.json(getNodesStatus())
+            }).catch((err) => {
+                console.log(`Error broadcasting new node to network`);
+                console.log(err);
             });
     });
 });
