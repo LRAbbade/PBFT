@@ -324,7 +324,7 @@ app.post('/start-register', function (req, res) {
         const reqBcType = req.body.blockchainType;
         const nodeStatus = getNodesStatus();
 
-        console.log(`Starting node registration of type: ${reqBcType}`);
+        console.log(`Starting node registration of type '${reqBcType}' for ${req.connection.remoteAddress}`);
         nodeStatus.data = reqBcType === "full" ? nodeIp + "/blockchain/0" : getLastBlocks(10);
 
         res.json(nodeStatus);
@@ -394,6 +394,7 @@ prompt.get(['masterNodeAddress'], function (err, result) {
             form: { blockchainType }
         }, function (err, res, body) {
             console.log(`Response received, adding network nodes`);
+            console.log(body);
             body = JSON.parse(body);
 
             if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
