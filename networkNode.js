@@ -297,7 +297,8 @@ app.post('/register-node', function (req, res) {
 
 app.post('/register-and-broadcast-node', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        console.log(`Received request from ${req.connection.remoteAddress} to join network: ${req.body}`);
+        console.log(`Received request from ${req.connection.remoteAddress} to join network`);
+        console.log(req.body);
         const reqType = req.body.nodeType;
         const reqAddress = req.body.nodeIp;
         
