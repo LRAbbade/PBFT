@@ -70,7 +70,7 @@ Blockchain.prototype.putBlockOnHold = function(block) {
 // TODO: this might blow up if node is not a full node
 // test if there's a possibility of the array index being different than 'index-1'
 Blockchain.prototype.isBlockInBlockchain = function(hash, index) {
-    return (this.chain[index-1]['hash'] === hash);
+    return (this.chain[index-2]['hash'] === hash);
 }
 
 // returns current number of yes votes for block on voting after new vote is processed
