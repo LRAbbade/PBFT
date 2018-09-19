@@ -8,16 +8,18 @@ It's known for being a more secure alternative to the traditional [Proof of Work
 It is possible to start many nodes in the same machine or in different VMs, the initialization is the same, as follows:
 
 ```sh
-$ node networkNode.js <type> <address>
+$ node networkNode.js <node_type> <blockchain_type> <address>
 ```
 
 Example:
 
 ```sh
-node networkNode.js master http://localhost:3000
+node networkNode.js master full http://localhost:3000
 ```
 
 Node type should be either `master` or `network`. Only `master` nodes are allowed to create blocks in PBFT. Any node will take part in the voting though.
+
+Blockchain type should be either `full` or `light`. The `full` type gets the entire blockchain from `master` node, but this is more time and network consuming. `full`'s counter part is `light`, that is fast and lightweight with the main downside of not receiving the entire blockchain (only the last 10 blocks from `master` node).
 
 As soon as the node starts, it will ask the user for a master node ip, so it can retrieve network current information.
 
