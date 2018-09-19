@@ -239,14 +239,14 @@ app.post('/createBlock', function (req, res) {
             console.log(req.body);
 
             var timestamp;
-            if (timestamp in req.body && checkTimestampFormat(req.body.timestamp)) {
+            if ('timestamp' in req.body && checkTimestampFormat(req.body['timestamp'])) {
                 console.log(`Received timestamp from request`);
-                timestamp = req.body.timestamp;        // temporary measure to add data for testing, will be removed in the future
+                timestamp = req.body['timestamp'];        // temporary measure to add data for testing, will be removed in the future
             } else {
-                if (!(timestamp in req.body)) {
+                if (!('timestamp' in req.body)) {
                     console.log(`Timestamp was NOT received`);
-                } else if (!checkTimestampFormat(req.body.timestamp)) {
-                    console.log(`Timestamp format is wrong: ${req.body.timestamp}`);
+                } else if (!checkTimestampFormat(req.body['timestamp'])) {
+                    console.log(`Timestamp format is wrong: ${req.body['timestamp']}`);
                 }
                 timestamp = getCurrentTimestamp();
             }
