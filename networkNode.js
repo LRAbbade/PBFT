@@ -70,7 +70,11 @@ app.get('/blockchain', function (req, res) {
 });
 
 app.get('/blockchain/size', (req, res) => {
-    isEndpointEnabled(req, res, () => res.send(blockchain.length));
+    isEndpointEnabled(req, res, () => { 
+        res.json({
+            note: blockchain.length
+        });
+    });
 });
 
 // Byzantine fault tolerance
