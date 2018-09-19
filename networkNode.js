@@ -237,7 +237,13 @@ app.post('/createBlock', function (req, res) {
         } else {
             console.log(`Creating block for car ${req.body.carPlate} and broadcasting to network`);
 
-            const timestamp = checkTimestampFormat(req.body.timestamp) ? req.body.timestamp : getCurrentTimestamp();        // temporary measure to add data for testing, will be removed in the future
+            var timestamp;
+            if (timestamp in req.body && checkTimestampFormat(req.body.timestamp)) {
+                timestamp = req.body.timestamp;        // temporary measure to add data for testing, will be removed in the future
+            } else {
+                timestamp = getCurrentTimestamp();
+            }
+
             const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block, timestamp);
 
             // broadcast block to every node for validation
