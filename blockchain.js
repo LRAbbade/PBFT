@@ -55,7 +55,7 @@ Blockchain.prototype.createBlock = function(lastBlockHash, carPlate, carData, ti
 }
 
 Blockchain.prototype.putBlockOnHold = function(block) {
-    if (!block['hash'] in this.buffer) {
+    if (!(block['hash'] in this.buffer)) {
         this.buffer[block['hash']] = {
             block: block,
             voting: {
@@ -64,6 +64,8 @@ Blockchain.prototype.putBlockOnHold = function(block) {
                 yesVotes: 0
             }
         }
+    } else {
+        console.log(`Block ${block['hash']} already in buffer`);
     }
 
     console.log(`Current buffer:`);
@@ -104,7 +106,7 @@ Blockchain.prototype.processVote = function(blockHash, blockIndex, nodeAddress, 
 }
 
 Blockchain.prototype.addBlockOnBuffer = function(hash) {
-    if (!hash in this.buffer) {
+    if (!(hash in this.buffer)) {
         throw `Trying to add block that is not on buffer: ${hash}`;
     }
 
@@ -117,7 +119,7 @@ Blockchain.prototype.addBlockOnBuffer = function(hash) {
 
 Blockchain.prototype.discardBlockOnBuffer = function(hash) {
     delete this.buffer[hash];
-    
+
     console.log(`Current buffer:`);
     console.log(this.buffer);
 }
