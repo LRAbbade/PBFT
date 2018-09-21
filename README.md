@@ -8,26 +8,22 @@ It's known for being a more secure alternative to the traditional [Proof of Work
 It is possible to start many nodes in the same machine or in different VMs, the initialization is the same, as follows:
 
 ```sh
-$ node networkNode.js <node_type> <blockchain_type> <ip address>
+$ node networkNode.js <node_type> <blockchain_type> <ip_address> <any_master_node_ip>
 ```
 
 Example:
 
 ```sh
-node networkNode.js master full 192.168.0.1
+node networkNode.js master full 192.168.0.1 192.168.0.2
 ```
 
 Node type should be either `master` or `network`. Only `master` nodes are allowed to create blocks in PBFT. Any node will take part in the voting though.
 
 Blockchain type should be either `full` or `light`. The `full` type gets the entire blockchain from `master` node, but this is more time and network consuming. `full`'s counter part is `light`, that is fast and lightweight with the main downside of not receiving the entire blockchain (only the last 10 blocks from `master` node).
 
-As soon as the node starts, it will ask the user for a master node ip, so it can retrieve network current information.
+`any_master_node_ip` should be a reachable `master` node ip address. If it is the first node in the network, use `this`, the node will then start as the first master node. Don't do this if you intend to connect to an active network, as the node will just start its own network and won't connect to any running nodes.
 
-This should be a reachable `master` node in the format ip.
-
-Both the `ip address` passed in initialization and the `master` node `ip` should be only the ip itself (eg. `10.10.0.1`). Do not specify `http://` or the port in the end, this will result in a request error.
-
-If it is the first node in the network, just input `this`, the node will then start as the first master node. Don't do this if you intend to connect to an active network, as the node will just start its own network and won't connect to any running nodes.
+Both the `ip_address` and the `any_master_node_ip` passed in initialization should be only the ip itself (eg. `10.10.0.1`). Do not specify `http://` or the port in the end, this will result in a request error.
 
 To test, you can reach `http://ip:port/` in your browser, it will return a `json` containing information on the node you requested, and the active nodes on the network.
 
