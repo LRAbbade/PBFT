@@ -5,10 +5,10 @@ const bodyParser = require('body-parser');      //convert req in json
 const rp = require('request-promise');
 const request = require('request');
 const uuid = require('uuid/v1');
-const prompt = require('prompt');
 const nodeType = process.argv[2];
 const blockchainType = process.argv[3];
 const nodeIp = process.argv[4];
+const masterAddress = process.argv[5];
 const nodeUuid = uuid().split('-').join('');
 const PORT = 3002;
 const runningSince = (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, "");
@@ -403,53 +403,45 @@ function requestRegister(ip, nodeType, nodeIp) {
     })
 }
 
-console.log("Input any master node in the network for initialization, if this is the first node, just input 'this'");
-
-prompt.start();
-prompt.get(['masterNodeAddress'], function (err, result) {
-    prompt.stop();
-    const masterAddress = result.masterNodeAddress;
-
-    if (masterAddress === 'this'){
-        if (!isMasterNode) {
-            throw `A common network node cannot be a master node, node type: ${nodeType}`;
-        } else {
-            masterNodes.push(nodeIp);
-            isBlockchainAvailable = true;
-        }
+if (masterAddress === 'this'){
+    if (!isMasterNode) {
+        throw `A common network node cannot be a master node, node type: ${nodeType}`;
     } else {
-        if (!isValidMasterNode(masterAddress)) {
-            throw `Master node address invalid: ${masterAddress}`;
-        }
-
-        // TODO: request master nodes from company's API
-
-        console.log(`Requesting registration to master node ${masterAddress}`);
-        request.post({
-            url: getURI(masterAddress, "/start-register"), 
-            form: { blockchainType }
-        }, function (err, res, body) {
-            console.log(`Response received, adding network nodes`);
-            console.log(body);
-            body = JSON.parse(body);
-
-            if (blockchainType === "full") {
-                blockchain.chain = [];
-                fullUpdateBlockchain(body['data'], () => {
-                    requestRegister(masterAddress, nodeType, nodeIp);
-                })
-            } else if (blockchainType === "light") {
-                blockchain.chain = body['data'];
-                requestRegister(masterAddress, nodeType, nodeIp);
-            } else {
-                // TODO unregister from network
-            }
-        });
+        masterNodes.push(nodeIp);
+        isBlockchainAvailable = true;
+    }
+} else {
+    if (!isValidMasterNode(masterAddress)) {
+        throw `Master node address invalid: ${masterAddress}`;
     }
 
-    app.listen(PORT, function () {
-        console.log(`Listening on port ${PORT}...`);
+    // TODO: request master nodes from company's API
+
+    console.log(`Requesting registration to master node ${masterAddress}`);
+    request.post({
+        url: getURI(masterAddress, "/start-register"), 
+        form: { blockchainType }
+    }, function (err, res, body) {
+        console.log(`Response received, adding network nodes`);
+        console.log(body);
+        body = JSON.parse(body);
+
+        if (blockchainType === "full") {
+            blockchain.chain = [];
+            fullUpdateBlockchain(body['data'], () => {
+                requestRegister(masterAddress, nodeType, nodeIp);
+            })
+        } else if (blockchainType === "light") {
+            blockchain.chain = body['data'];
+            requestRegister(masterAddress, nodeType, nodeIp);
+        } else {
+            // TODO unregister from network
+        }
     });
+}
+
+app.listen(PORT, function () {
+    console.log(`Listening on port ${PORT}...`);
 });
 
 // TODO: when a node goes offline, warn others to be removed from nodes list
