@@ -24,7 +24,6 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
-    "prompt": "^1.0.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "sha256": "^0.2.0",
