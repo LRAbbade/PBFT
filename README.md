@@ -51,5 +51,7 @@ There are a number of reasons for a block to be rejected, you can check the resu
 Further repositories of the CarChain Project:
 
 [Blockchain Visualizer](https://github.com/LRAbbade/Blockchain-Visualizer)
+
 [CarChain Dashboard](https://github.com/LRAbbade/CarChain-Dashboard)
+
 [Car Simulator](https://github.com/LRAbbade/Car_Simulator)
