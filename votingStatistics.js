@@ -47,7 +47,7 @@ class VotingStatistics {
         });
     }
 
-    getResults() {
+    getResults(numOfNodes) {
         return {
             'blockCreationLocalTime': this.blockCreationLocalTime,
             'validationLocalTime': this.validationLocalTime,
@@ -55,6 +55,7 @@ class VotingStatistics {
             'consensusTotalTime': this.consensusTotalTime,
             'blockCreationTotalTime': this.blockCreationTotalTime,
             'timeScale': 'ms',
+            'numberOfNodesInNetwork': numOfNodes,
             'detailedTimestamps': {
                 'startedCreationTimestamp': prettyTimestamp(this.startedCreationTimestamp),
                 'localBlockCreationFinishedTimestamp': prettyTimestamp(this.localBlockCreationFinishedTimestamp),

@@ -309,7 +309,7 @@ app.post('/createBlock', function (req, res) {
                     res.json({
                         note: `Block ${createdBlock['hash']} created and transmitted to the network for validation`,
                         block: createdBlock,
-                        votingStatistics: votingStatistics.getResults()
+                        votingStatistics: votingStatistics.getResults(masterNodes.length + networkNodes.length)
                     });
                 });
         }
