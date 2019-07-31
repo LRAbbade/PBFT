@@ -21,6 +21,8 @@ var masterNodes = [];
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 
+const log = _str => console.log(`[${(new Date()).toISOString().replace('T', ' ').replace('Z', '')}]: ${_str}`);
+
 function isEndpointEnabled(req, res, callback) {
     isBlockchainAvailable ? callback() : res.json({ note: "This endpoint isn't available!" })
 }
@@ -37,7 +39,7 @@ if ((nodeType !== "master" && nodeType !== "network") ||
 }
 
 const isMasterNode = (nodeType === 'master');
-console.log(`Starting ${nodeType} node at ${runningSince}`);
+log(`Starting ${nodeType} node at ${runningSince}`);
 
 function getURI(ip, route) {
     return `http://${ip}:${PORT}${route}`;
@@ -135,21 +137,21 @@ app.post('/receive-vote', function (req, res) {
         const blockHash = req.body.newBlockHash;
         const blockIndex = req.body.newBlockIndex;
         const vote = req.body.vote;
-        console.log(`Vote ${vote} by ${req.body.nodeAddress} was received on block ${blockHash}`);
+        log(`Vote ${vote} by ${req.body.nodeAddress} was received on block ${blockHash}`);
         const results = blockchain.processVote(blockHash, blockIndex, req.body.nodeAddress, vote);
 
         if ('warning' in results) {
-            console.log(results.warning);
+            log(results.warning);
             res.json({
                 note: results.warning
             });
         } else {
             if (results.yesVotes >= getMinVotesRequired()) {
                 blockchain.addBlockOnBuffer(blockHash);
-                console.log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
+                log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
             } else if (results.totalVotes >= masterNodes.length + networkNodes.length) { // should never be greater, but just in case
                 blockchain.closeVotingOnBlock(blockHash);
-                console.log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
+                log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
             }
 
             res.json({
@@ -167,8 +169,8 @@ app.post('/validate', function (req, res) {
                 vote: "no"
             });
         } else {
-            console.log(`Starting validation on block ${req.body.createdBlock['hash']}`);
-            console.log(`Block received from: ${req.connection.remoteAddress}`);
+            log(`Starting validation on block ${req.body.createdBlock['hash']}`);
+            log(`Block received from: ${req.connection.remoteAddress}`);
             // TODO: check if ip of sender matches any master node ip
 
             blockchain.putBlockOnHold(req.body.createdBlock);
@@ -179,8 +181,8 @@ app.post('/validate', function (req, res) {
             const isValidBlock = validationResult.isValid;
 
             if (!isValidBlock) {
-                console.log(`block ${newBlockHash} is NOT valid, details as follows:`);
-                console.log(validationResult.details);
+                log(`block ${newBlockHash} is NOT valid, details as follows:`);
+                log(validationResult.details);
             }
 
             const vote = isValidBlock ? "yes" : "no";
@@ -238,20 +240,20 @@ function getCurrentTimestamp() {
 
 app.post('/createBlock', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        console.log(`Received request to create block from ${req.connection.remoteAddress}`);
+        log(`Received request to create block from ${req.connection.remoteAddress}`);
         if (!isMasterNode) {
-            console.log(`This node (${nodeIp} ${nodeType}) has no permission to create blocks`);
+            log(`This node (${nodeIp} ${nodeType}) has no permission to create blocks`);
             res.json({
                 note: `This node (${nodeIp}) has no permission to create blocks. To create a new block send a request to a master node`
             });
         } else if (!isValidMeta(req.body)) {
-            console.log(`Invalid request meta`);
+            log(`Invalid request meta`);
             res.json({
                 note: `Invalid request details`
             });
         } else {
-            console.log(`Creating block for car ${req.body.carPlate} and broadcasting to network`);
-            console.log(req.body);
+            log(`Creating block for car ${req.body.carPlate} and broadcasting to network`);
+            log(JSON.stringify(req.body));
 
             var timestamp;
             if ('timestamp' in req.body && checkTimestampFormat(req.body['timestamp'])) {
@@ -260,7 +262,7 @@ app.post('/createBlock', function (req, res) {
                 timestamp = getCurrentTimestamp();
             }
 
-            console.log(`Timestamp used: ${timestamp}`);
+            log(`Timestamp used: ${timestamp}`);
             const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block, timestamp);
 
             // broadcast block to every node for validation
@@ -299,18 +301,18 @@ function isValidRegisterRequest(reqAddress, reqType) {
 
 app.post('/register-node', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        console.log(`Received register request from ${req.connection.remoteAddress}`);
+        log(`Received register request from ${req.connection.remoteAddress}`);
         const reqAddress = req.body.nodeAddress;
         const reqType = req.body.nodeType;
 
         if (!isValidRegisterRequest(reqAddress, reqType)) {
-            console.log(`Register request from ${reqAddress} is invalid`);
+            log(`Register request from ${reqAddress} is invalid`);
             res.json({
                 note: `Invalid request for registering node`
             });
         } else {
             reqType === "master" ? masterNodes.push(reqAddress) : networkNodes.push(reqAddress);
-            console.log(`Node ${reqAddress} added to the ${reqType} list`);
+            log(`Node ${reqAddress} added to the ${reqType} list`);
             res.json({
                 note: `Node registered successfully on node ${nodeUuid}, ${nodeIp}`
             });
@@ -320,8 +322,8 @@ app.post('/register-node', function (req, res) {
 
 app.post('/register-and-broadcast-node', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        console.log(`Received request from ${req.connection.remoteAddress} to join network`);
-        console.log(req.body);
+        log(`Received request from ${req.connection.remoteAddress} to join network`);
+        log(req.body);
         const reqType = req.body.nodeType;
         const reqAddress = req.body.nodeIp;
         
@@ -333,15 +335,15 @@ app.post('/register-and-broadcast-node', function (req, res) {
             regNodesPromises.push(rp(makeRegisterRequest(networkNodes[i], reqAddress, reqType)));
         }
 
-        console.log(`Broadcasting node ${reqAddress} (${reqType}) to network`);
+        log(`Broadcasting node ${reqAddress} (${reqType}) to network`);
         Promise
             .all(regNodesPromises)
             .then(() => {
-                console.log(`Node ${reqAddress} added to network`)
+                log(`Node ${reqAddress} added to network`)
                 res.json(getNodesStatus())
             }).catch((err) => {
-                console.log(`Error broadcasting new node to network`);
-                console.log(err);
+                log(`Error broadcasting new node to network`);
+                log(err);
             });
     });
 });
@@ -350,7 +352,7 @@ app.post('/start-register', function (req, res) {
     isEndpointEnabled(req, res, () => {
         const reqBcType = req.body.blockchainType;
 
-        console.log(`Starting node registration of type '${reqBcType}' for ${req.connection.remoteAddress}`);
+        log(`Starting node registration of type '${reqBcType}' for ${req.connection.remoteAddress}`);
         res.json({
             data: reqBcType === "full" ? getURI(nodeIp, "/blockchain/0") : getLastBlocks(10)
         });
@@ -389,8 +391,8 @@ function requestRegister(ip, nodeType, nodeIp) {
         url: getURI(ip, '/register-and-broadcast-node'),
         form: { nodeType, nodeIp }
     }, function (err, res, body) {
-        console.log(`Received response for register request`);
-        console.log(body);
+        log(`Received response for register request`);
+        log(body);
         body = JSON.parse(body);
 
         if (!body['masterNodes'].length) {      // there should be at least 1 master node in the network
@@ -417,13 +419,13 @@ if (masterAddress === 'this'){
 
     // TODO: request master nodes from company's API
 
-    console.log(`Requesting registration to master node ${masterAddress}`);
+    log(`Requesting registration to master node ${masterAddress}`);
     request.post({
         url: getURI(masterAddress, "/start-register"), 
         form: { blockchainType }
     }, function (err, res, body) {
-        console.log(`Response received, adding network nodes`);
-        console.log(body);
+        log(`Response received, adding network nodes`);
+        log(body);
         body = JSON.parse(body);
 
         if (blockchainType === "full") {
@@ -441,7 +443,7 @@ if (masterAddress === 'this'){
 }
 
 app.listen(PORT, function () {
-    console.log(`Listening on port ${PORT}...`);
+    log(`Listening on port ${PORT}...`);
 });
 
 // TODO: when a node goes offline, warn others to be removed from nodes list
