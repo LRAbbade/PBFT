@@ -1,4 +1,5 @@
 const Blockchain = require('./blockchain');
+const VotingStatistics = require('./votingStatistics');
 const express = require('express');
 const app = express(); 
 const bodyParser = require('body-parser');      //convert req in json
@@ -22,6 +23,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 
 const log = _str => console.log(`[${getCurrentTimestamp()}]: ${_str}`);
+
+var votingStatistics = null;
 
 function isEndpointEnabled(req, res, callback) {
     isBlockchainAvailable ? callback() : res.json({ note: "This endpoint isn't available!" })
@@ -138,6 +141,8 @@ app.post('/receive-vote', function (req, res) {
         const blockIndex = req.body.newBlockIndex;
         const vote = req.body.vote;
         log(`Vote ${vote} by ${req.body.nodeAddress} was received on block ${blockHash}`);
+        votingStatistics.voteReceived(vote, req.body.nodeAddress);
+
         const results = blockchain.processVote(blockHash, blockIndex, req.body.nodeAddress, vote);
 
         if ('warning' in results) {
@@ -146,12 +151,19 @@ app.post('/receive-vote', function (req, res) {
                 note: results.warning
             });
         } else {
+            const closeConsensusTime = () => {
+                votingStatistics.consensusFinished();
+                log(`Consensus total time: ${votingStatistics.consensusTotalTime}ms`);
+            };
+
             if (results.yesVotes >= getMinVotesRequired()) {
                 blockchain.addBlockOnBuffer(blockHash);
                 log(`Consensus was reached, new block (${blockHash}) added to the blockchain`);
+                closeConsensusTime();
             } else if (results.totalVotes >= masterNodes.length + networkNodes.length) { // should never be greater, but just in case
                 blockchain.closeVotingOnBlock(blockHash);
                 log(`Consensus was NOT reached, new block (${blockHash}) was discarded`);
+                closeConsensusTime();
             }
 
             res.json({
@@ -163,6 +175,8 @@ app.post('/receive-vote', function (req, res) {
 
 app.post('/validate', function (req, res) {
     isEndpointEnabled(req, res, () => {
+        votingStatistics.validationStarted();
+
         if (!isValidMeta(req.body.originalBody)) {
             res.json({
                 note: `Invalid car metadata`,
@@ -187,6 +201,9 @@ app.post('/validate', function (req, res) {
 
             const vote = isValidBlock ? "yes" : "no";
 
+            votingStatistics.localValidationFinished();
+            log(`Block validation time: ${votingStatistics.validationLocalTime}ms`);
+
             // broadcast vote to every node for validation
             const sendVotePromises = [];
             for (var i = 0; i < masterNodes.length; i++) {
@@ -198,6 +215,10 @@ app.post('/validate', function (req, res) {
 
             Promise.all(sendVotePromises)
                 .then(function (body) {
+                    log(`Vote transmission results:\n${JSON.stringify(body)}`);
+                    votingStatistics.validationResultsReceived();
+                    log(`Total validation time: ${votingStatistics.validationTotalTime}ms`);
+
                     res.json({
                         note: `Block ${newBlockHash} processed and vote ${vote} transmitted to the network`,
                         "nodeAddress": nodeIp
@@ -241,6 +262,8 @@ function getCurrentTimestamp() {
 app.post('/createBlock', function (req, res) {
     isEndpointEnabled(req, res, () => {
         log(`Received request to create block from ${req.connection.remoteAddress}`);
+        votingStatistics = new VotingStatistics();
+
         if (!isMasterNode) {
             log(`This node (${nodeIp} ${nodeType}) has no permission to create blocks`);
             res.json({
@@ -265,6 +288,9 @@ app.post('/createBlock', function (req, res) {
             log(`Timestamp used: ${timestamp}`);
             const createdBlock = blockchain.createBlock(blockchain.getLastBlock()['hash'], req.body.carPlate, req.body.block, timestamp);
 
+            votingStatistics.blockCreationLocalFinished();
+            log(`Block creation time: ${votingStatistics.blockCreationLocalTime}ms`);
+
             // broadcast block to every node for validation
             const validateNodesPromises = [];
             for (var i = 0; i < masterNodes.length; i++) {
@@ -275,10 +301,15 @@ app.post('/createBlock', function (req, res) {
             }
 
             Promise.all(validateNodesPromises)
-                .then(function(body) {          // body is an array with the result of each request
+                .then((body) => {          // body is an array with the result of each request
+                    log(`Block insertion results:\n${JSON.stringify(body)}`);
+                    votingStatistics.blockCreationResultsReceived();
+                    log(`Create block total time: ${votingStatistics.blockCreationTotalTime}ms`);
+
                     res.json({
                         note: `Block ${createdBlock['hash']} created and transmitted to the network for validation`,
-                        block: createdBlock
+                        block: createdBlock,
+                        votingStatistics: votingStatistics.getResults()
                     });
                 });
         }
