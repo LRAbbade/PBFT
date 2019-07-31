@@ -22,7 +22,12 @@ var masterNodes = [];
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 
-const log = _str => console.log(`[${getCurrentTimestamp()}]: ${_str}`);
+const log = _str => {
+    if (typeof _str === 'object') {
+        _str = JSON.stringify(_str);
+    }
+    console.log(`[${getCurrentTimestamp()}]: ${_str}`);
+};
 
 var votingStatistics = null;
 
@@ -354,7 +359,7 @@ app.post('/register-node', function (req, res) {
 app.post('/register-and-broadcast-node', function (req, res) {
     isEndpointEnabled(req, res, () => {
         log(`Received request from ${req.connection.remoteAddress} to join network`);
-        log(req.body);
+        log(JSON.stringify(req.body));
         const reqType = req.body.nodeType;
         const reqAddress = req.body.nodeIp;
         
