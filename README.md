@@ -1,7 +1,7 @@
 # Practical Byzantine Fault Tolerance
 PBFT is a consensus algorithm [used by some of the biggest Blockchains](https://blockonomi.com/practical-byzantine-fault-tolerance/).
 
-It's known for being a more secure alternative to the traditional [Proof of Work](https://en.wikipedia.org/wiki/Proof-of-work_system).
+It's known for being a more scalable alternative to the traditional [Proof of Work](https://en.wikipedia.org/wiki/Proof-of-work_system).
 
 ## Execution
 
@@ -48,4 +48,10 @@ There are a number of reasons for a block to be rejected, you can check the resu
 
 ---
 
-This repository is part of the [CarChain project](https://github.com/alissonfpmorais/blockchain-js)
+Further repositories of the CarChain Project:
+
+[Blockchain Visualizer](https://github.com/LRAbbade/Blockchain-Visualizer)
+
+[CarChain Dashboard](https://github.com/LRAbbade/CarChain-Dashboard)
+
+[Car Simulator](https://github.com/LRAbbade/Car_Simulator)
