@@ -180,7 +180,11 @@ app.post('/receive-vote', function (req, res) {
 
 app.post('/validate', function (req, res) {
     isEndpointEnabled(req, res, () => {
-        votingStatistics.validationStarted();
+        try {
+            votingStatistics.validationStarted();
+        } catch(err) {
+            votingStatistics = new VotingStatistics();
+        }
 
         if (!isValidMeta(req.body.originalBody)) {
             res.json({
