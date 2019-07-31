@@ -21,7 +21,7 @@ var masterNodes = [];
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }))
 
-const log = _str => console.log(`[${(new Date()).toISOString().replace('T', ' ').replace('Z', '')}]: ${_str}`);
+const log = _str => console.log(`[${getCurrentTimestamp()}]: ${_str}`);
 
 function isEndpointEnabled(req, res, callback) {
     isBlockchainAvailable ? callback() : res.json({ note: "This endpoint isn't available!" })
@@ -235,7 +235,7 @@ function checkTimestampFormat(timestamp) {
 }
 
 function getCurrentTimestamp() {
-    return (new Date()).toISOString().replace("T", " ").replace(/\.\d+.*/, "");
+    return (new Date()).toISOString().replace("T", " ").replace("Z", "");
 }
 
 app.post('/createBlock', function (req, res) {
