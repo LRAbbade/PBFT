@@ -1,0 +1,6 @@
+version: '2'
+services:
+        node:
+                image: pbft/algo
+                command: /bin/bash -c "while true ; do sleep 10; done"
+     
