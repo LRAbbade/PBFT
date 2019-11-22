@@ -46,6 +46,59 @@ The `response` will contain the whole created block that was broadcast to the ne
 
 There are a number of reasons for a block to be rejected, you can check the results of the voting process in any node `log`.
 
+## Docker Example
+
+Building docker container for pbft and starting n nodes.
+
+```sh
+docker build . pbft/algo
+docker-compose scale node=<total-num-of-nodes> #starts n containers
+```
+
+Let's see the steps to follow for n=4 nodes with 2 master nodes.
+
+Use `docker ps` for viewing the container ids. To get the ip of the container processes use:
+
+```sh
+docker exec -it pbft_node_1 ip addr
+docker exec -it pbft_node_2 ip addr
+docker exec -it pbft_node_3 ip addr
+docker exec -it pbft_node_4 ip addr
+```
+
+Copy the container ip:
+
+```sh
+docker exec -it pbft_node_1 node networkNode.js master full <container-ip> this
+docker exec -it pbft_node_2 node networkNode.js master full <container-ip> <pbft_node_1's_IP>
+docker exec -it pbft_node_3 node networkNode.js network full <container-ip> <pbft_node_1or2's_IP>
+docker exec -it pbft_node_4 node networkNode.js network full <container-ip> <pbft_node_1or2's_IP>
+```
+These will start 2 master node and 2 network nodes.
+
+### Interacting with blockchain
+
+__View__
+```sh
+curl <node_ip>:3002/blockchain # for viewing the blockchain
+```
+
+__Append__
+```sh
+curl -XPOST <master_node_ip>:3002/createblock -H "Content-Type: application/json" -d '{
+	"timestamp": "YYYY-MM-DD HH:MM:SS",		// optional
+	"carPlate": "<plate>",
+	"block": {
+		"data": "any data, can be an array, or json, str..."
+	}
+}' # for creating a new block
+```
+
+__View__
+```sh
+curl <node_ip>:3002/blockchain # for viewing the blockchain after the adding of new block is completed
+```
+
 ---
 
 Further repositories of the CarChain Project:
