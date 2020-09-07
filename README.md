@@ -78,23 +78,26 @@ These will start 2 master node and 2 network nodes.
 
 ### Interacting with blockchain
 
-__View__
+#### View
+
 ```sh
 curl <node_ip>:3002/blockchain # for viewing the blockchain
 ```
 
-__Append__
+#### Append
+
 ```sh
 curl -XPOST <master_node_ip>:3002/createblock -H "Content-Type: application/json" -d '{
-	"timestamp": "YYYY-MM-DD HH:MM:SS",		// optional
-	"carPlate": "<plate>",
-	"block": {
-		"data": "any data, can be an array, or json, str..."
-	}
+ "timestamp": "YYYY-MM-DD HH:MM:SS",  // optional
+ "carPlate": "<plate>",
+ "block": {
+  "data": "any data, can be an array, or json, str..."
+ }
 }' # for creating a new block
 ```
 
-__View__
+#### View
+
 ```sh
 curl <node_ip>:3002/blockchain # for viewing the blockchain after the adding of new block is completed
 ```
