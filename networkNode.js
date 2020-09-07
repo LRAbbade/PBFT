@@ -29,6 +29,14 @@ const log = _str => {
     console.log(`[${getCurrentTimestamp()}]: ${_str}`);
 };
 
+function removeItem(array, val) {
+    const index = array.indexOf(val);
+    if (index > -1) {
+        return array.splice(index, 1);
+    }
+    throw `${val} not found`
+}
+
 var votingStatistics = null;
 
 function isEndpointEnabled(req, res, callback) {
@@ -357,6 +365,58 @@ app.post('/register-node', function (req, res) {
                 note: `Node registered successfully on node ${nodeUuid}, ${nodeIp}`
             });
         }
+    });
+});
+
+app.post('/deregister-node', (req, res) => {
+    isEndpointEnabled(req, res, () => {
+        log(`Received deregister request from ${req.connection.remoteAddress}`);
+        const nodeAddress = req.body.nodeAddress
+        // TODO: check if node has permission to deregister nodeAddress
+        var index = masterNodes.indexOf(nodeAddress);
+        if (index > -1) {
+            const removed = masterNodes.splice(index, 1);
+            res.json({node: `${removed} removed from network`});
+        }
+        var index = networkNodes.indexOf(nodeAddress);
+        if (index > -1) {
+            const removed = networkNodes.splice(index, 1);
+            res.json({node: `${removed} removed from network`});
+        }
+
+        res.status(404).json({note: `${nodeAddress} not found in network`});
+    });
+});
+
+function removeFromNetwork(nodeIp, callback) {
+    const body = {nodeAddress: nodeIp};
+    const unregNodesPromises = [];
+    for (var i = 0; i < masterNodes.length; i++) {
+        unregNodesPromises.push(rp(makePostRequest(masterNodes[i], '/deregister-node', body)));
+    }
+    for (var i = 0; i < networkNodes.length; i++) {
+        unregNodesPromises.push(rp(makePostRequest(networkNodes[i], '/deregister-node', body)));
+    }
+
+    log(`Removind node ${nodeIp} from network`);
+    Promise
+        .all(unregNodesPromises)
+        .then(() => {
+            log(`Node ${nodeIp} removed from network`)
+            callback();
+        }).catch((err) => {
+            log(`Error removing node from network`);
+            log(err);
+        });
+}
+
+function removeSelfFromNetwork(callback) {
+    removeFromNetwork(nodeIp, callback);
+}
+
+app.post('/deregister-self', (req, res) => {
+    removeSelfFromNetwork(() => {
+        res.json({note: `${nodeIp} deregistered from network`});
     });
 });
 
